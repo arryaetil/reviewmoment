@@ -12,7 +12,7 @@
     "@anthropic-ai/sdk": "^0.27.0",
     "bcryptjs": "^3.0.3",
     "jose": "^6.2.3",
-    "next": "14.2.5",
+    "next": "^14.2.35",
     "papaparse": "^5.4.1",
     "react": "^18",
     "react-dom": "^18",
