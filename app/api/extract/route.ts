@@ -30,9 +30,10 @@ export async function POST(req: NextRequest) {
 Jouw taak:
 1. Identificeer welke kolom namen bevat en welke e-mailadressen (kolomnamen kunnen variëren: naam/klantnaam/name/contact, email/e-mail/mail/e-mailadres etc.)
 2. Extraheer alle contacten
-3. Valideer e-mailadressen met een basis check (bevat @ en een punt na @)
-4. Markeer ongeldige of lege adressen
-5. Detecteer duplicaten (zelfde e-mailadres meerdere keren)
+3. Als er GEEN naam-kolom is, leid de naam af uit het e-mailadres: splits het deel voor @ op punten en streepjes, maak er een naam van met hoofdletters (bv. "jan.de.vries@gmail.com" → "Jan de Vries", "petra_bakker@hotmail.com" → "Petra Bakker")
+4. Valideer e-mailadressen met een basis check (bevat @ en een punt na @)
+5. Markeer ongeldige of lege adressen
+6. Detecteer duplicaten (zelfde e-mailadres meerdere keren)
 
 Retourneer UITSLUITEND een geldig JSON object in dit exacte formaat, zonder markdown, zonder uitleg:
 {
