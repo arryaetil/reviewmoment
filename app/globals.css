@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --blue:      #1a44e8;
+  --blue-mid:  #2d55f0;
+  --blue-dark: #0f2a9e;
+  --blue-pale: #e8eeff;
+  --blue-soft: #c7d4fd;
+  --text:      #1a1f36;
+  --muted:     #6b7280;
+  --border:    rgba(255, 255, 255, 0.25);
+  --white:     #ffffff;
+  --bg:        #f5f7ff;
+  --green:     #16a34a;
+
+  --glass-bg:  rgba(255, 255, 255, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --glass-shadow: 0 8px 32px rgba(26, 68, 232, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --glass-blur: 20px;
+}
+
+html, body {
+  height: 100%;
+}
+
+/* Mesh gradient background */
+.bg-mesh {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(26, 68, 232, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(99, 140, 255, 0.07) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(167, 139, 250, 0.06) 0%, transparent 50%),
+    linear-gradient(180deg, #f0f4ff 0%, #f8f9ff 50%, #f5f3ff 100%);
+}
+
+/* Login mesh — more dramatic */
+.bg-mesh-login {
+  background:
+    radial-gradient(ellipse at 30% 10%, rgba(26, 68, 232, 0.12) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 30%, rgba(99, 140, 255, 0.10) 0%, transparent 50%),
+    radial-gradient(ellipse at 40% 80%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 90% 90%, rgba(56, 189, 248, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #eef2ff 0%, #f8f9ff 40%, #f5f3ff 100%);
+}
+
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 8px 32px rgba(26, 68, 232, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.glass-input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(26, 68, 232, 0.1), inset 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.btn-glass {
+  background: linear-gradient(135deg, #1a44e8 0%, #3a5ff5 60%, #5b7aff 100%);
+  box-shadow:
+    0 4px 14px rgba(26, 68, 232, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+
+.btn-glass:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 6px 20px rgba(26, 68, 232, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.btn-glass:active {
+  transform: translateY(0);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes blink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  93% { transform: scaleY(0.1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: .4; transform: scale(1); }
+  50% { opacity: .9; transform: scale(1.1); }
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .35; }
+}
+
+@keyframes bounce-dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-5px); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
