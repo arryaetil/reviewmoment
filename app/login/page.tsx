@@ -42,7 +42,7 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="reviewmoment.app" className="h-20 w-auto" />
+          <img src="/logo.svg" alt="reviewmoment.nl" className="h-20 w-auto" />
           <h1 className="mt-8 font-heading text-xl">Inloggen</h1>
           <p className="mt-2 text-base text-ink-muted">
             Log in om reviewverzoeken te versturen.
@@ -86,7 +86,7 @@ export default function LoginPage() {
             wachtwoord in de client-bundle, zichtbaar voor iedereen die de
             pagina opvraagt. Prima voor een POC, niet voor productie. */}
 
-        <p className="mt-6 text-center text-sm text-ink-subtle">reviewmoment.app</p>
+        <p className="mt-6 text-center text-sm text-ink-subtle">reviewmoment.nl</p>
       </div>
     </div>
   )

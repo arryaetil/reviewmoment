@@ -53,7 +53,7 @@ andere klanten mee de spamfolder in. Elke tenant krijgt daarom
 `<klant>.<SENDING_ROOT_DOMAIN>`, automatisch aangemaakt bij onboarding via de
 Resend- en Cloudflare-API's. De klant hoeft zelf geen DNS te regelen.
 
-Het verzenddomein staat bewust los van het merkdomein (reviewmoment.app), zodat
+Het verzenddomein staat bewust los van het merkdomein (reviewmoment.nl), zodat
 reputatieschade nooit de eigen zakelijke mail raakt.
 
 ## Datamodel
@@ -117,7 +117,7 @@ cp .env.example .env.local     # vul de waarden in
 npm run db:generate            # alleen na schemawijzigingen
 npm run db:migrate
 npm run preflight              # controleert alle externe diensten
-npm run seed:admin jij@reviewmoment.app <wachtwoord>
+npm run seed:admin jij@reviewmoment.nl <wachtwoord>
 npm run dev
 ```
 

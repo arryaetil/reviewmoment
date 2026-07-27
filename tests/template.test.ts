@@ -7,7 +7,7 @@ const base = {
   name: 'Petra',
   businessName: 'Kvik Maastricht',
   reviewLink: 'https://g.page/r/abc123',
-  unsubscribeUrl: 'https://app.reviewmoment.app/u/token123',
+  unsubscribeUrl: 'https://app.reviewmoment.nl/u/token123',
 }
 
 describe('e-mailtemplate', () => {

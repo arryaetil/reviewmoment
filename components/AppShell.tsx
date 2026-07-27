@@ -30,7 +30,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen bg-canvas">
       <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface px-4 py-6">
         <div className="mb-8 px-2">
-          <img src="/logo-horizontal.svg" alt="reviewmoment.app" className="h-7 w-auto" />
+          <img src="/logo-horizontal.svg" alt="reviewmoment.nl" className="h-7 w-auto" />
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
