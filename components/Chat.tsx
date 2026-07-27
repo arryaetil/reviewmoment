@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { ChatMessage, Contact, ExtractResult, RawRow, SendResult } from '@/lib/types'
+import { ChatMessage, Contact, ExtractResult, RawRow, QueueResponse, JobStatus } from '@/lib/types'
+import { Button, Input, Spinner, cn } from '@/components/ui'
 
 interface Props {
   uploadTrigger: RawRow[] | null
@@ -10,61 +11,10 @@ interface Props {
 
 type State = 'idle' | 'extracting' | 'awaiting_confirmation' | 'sending' | 'done'
 
-function CloudyAvatar() {
-  return (
-    <div style={{ position: 'relative', width: '46px', height: '46px', flexShrink: 0 }}>
-      <div style={{
-        position: 'absolute', inset: '-6px', borderRadius: '50%',
-        background: 'radial-gradient(circle, rgba(255,255,255,.25) 0%, transparent 70%)',
-        animation: 'pulse-glow 2.5s ease-in-out infinite',
-      }} />
-      <div style={{
-        width: '46px', height: '46px', borderRadius: '50%',
-        background: 'linear-gradient(160deg, #dde8ff 0%, #b8caff 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative',
-        boxShadow: '0 0 0 2px rgba(255,255,255,.4), 0 4px 14px rgba(0,0,0,.2)',
-        animation: 'float 3.5s ease-in-out infinite',
-      }}>
-        <div style={{ position: 'absolute', top: '-4px', left: '5px', right: '5px', height: '5px', border: '2.5px solid rgba(180,200,255,.8)', borderBottom: 'none', borderRadius: '10px 10px 0 0' }} />
-        <div style={{ position: 'absolute', top: '10px', left: '-3px', width: '5px', height: '11px', borderRadius: '3px', background: 'linear-gradient(180deg, #4a7fff, #1a44e8)', boxShadow: '0 0 6px rgba(26,68,232,.5)' }} />
-        <div style={{ position: 'absolute', top: '10px', right: '-3px', width: '5px', height: '11px', borderRadius: '3px', background: 'linear-gradient(180deg, #4a7fff, #1a44e8)', boxShadow: '0 0 6px rgba(26,68,232,.5)' }} />
-        <div style={{
-          width: '32px', height: '24px', borderRadius: '8px', background: '#08101f',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '3px',
-          boxShadow: 'inset 0 0 8px rgba(26,68,232,.5), 0 0 0 1.5px rgba(100,140,255,.4)',
-        }}>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <div style={{ width: '6px', height: '4px', borderRadius: '50%', background: '#1a44e8', boxShadow: '0 0 5px rgba(26,68,232,.9)', animation: 'blink 4s ease-in-out infinite' }} />
-            <div style={{ width: '6px', height: '4px', borderRadius: '50%', background: '#1a44e8', boxShadow: '0 0 5px rgba(26,68,232,.9)', animation: 'blink 4s ease-in-out infinite .08s' }} />
-          </div>
-          <div style={{ width: '11px', height: '3px', borderBottom: '2px solid #1a44e8', borderRadius: '0 0 5px 5px', boxShadow: '0 0 5px rgba(26,68,232,.7)' }} />
-        </div>
-        <div style={{ position: 'absolute', bottom: '5px', left: '50%', transform: 'translateX(-50%)', fontSize: '7px', color: 'rgba(26,68,232,.5)', lineHeight: 1 }}>☁</div>
-      </div>
-    </div>
-  )
-}
-
-function BubbleAvatar({ role }: { role: 'ai' | 'user' }) {
-  return (
-    <div style={{
-      width: '26px', height: '26px', borderRadius: '50%', flexShrink: 0,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: '9px', fontWeight: 700, marginBottom: '2px',
-      ...(role === 'ai'
-        ? { background: 'linear-gradient(135deg, #1a44e8, #4a7fff)', color: 'white' }
-        : { background: 'rgba(26,68,232,.08)', color: '#1a44e8' }
-      ),
-    }}>
-      {role === 'ai' ? 'C' : 'JIJ'}
-    </div>
-  )
-}
-
 export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([{
     role: 'assistant',
-    content: 'Hoi! Ik ben Cloudy, je digitale assistent. Ik analyseer je bestand...',
+    content: 'Ik lees je bestand en zoek de e-mailadressen op…',
     timestamp: new Date(),
   }])
   const [input, setInput] = useState('')
@@ -123,24 +73,66 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
 
   async function runSend() {
     setChatState('sending')
-    addMessage('assistant', 'Bezig met versturen...')
+    addMessage('assistant', 'Bezig met inplannen...')
     const valid = pendingContacts.filter(c => c.valid)
     try {
       const res = await fetch('/api/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contacts: valid }) })
-      const data: SendResult = await res.json()
-      if (!res.ok) { addMessage('assistant', 'Er ging iets mis bij het versturen. Probeer opnieuw.'); setChatState('awaiting_confirmation'); return }
+      const data: QueueResponse = await res.json()
 
-      let msg = ''
-      if (data.failed === 0) {
-        msg = `Klaar! Alle ${data.sent} reviewverzoeken zijn succesvol verstuurd.`
-      } else {
-        msg = `${data.sent} van ${data.sent + data.failed} e-mails verstuurd. ${data.failed} mislukt.`
+      if (!res.ok) {
+        // De server weet beter wat er mis is dan wij: toon zijn melding, zodat
+        // een maandlimiet of onbevestigd domein niet als "er ging iets mis"
+        // bij de gebruiker aankomt.
+        addMessage('assistant', data.error || 'Er ging iets mis bij het versturen. Probeer opnieuw.')
+        setChatState('awaiting_confirmation')
+        return
       }
-      msg += '\n\nJe kunt een nieuw bestand uploaden om opnieuw te beginnen.'
 
+      let msg = `${data.queued} reviewverzoeken staan klaar en worden nu verstuurd.`
+      if (data.skippedUnsubscribed) {
+        msg += `\n${data.skippedUnsubscribed} ${data.skippedUnsubscribed === 1 ? 'adres is' : 'adressen zijn'} overgeslagen wegens een eerdere afmelding.`
+      }
       addMessage('assistant', msg)
-      setChatState('done')
+
+      if (data.jobId) await pollJob(data.jobId)
     } catch { addMessage('assistant', 'Verbindingsfout. Probeer opnieuw.'); setChatState('awaiting_confirmation') }
+  }
+
+  /**
+   * Verzenden gebeurt op de achtergrond, dus de chat volgt de voortgang via de
+   * status van de opdracht in plaats van te wachten op één lang request.
+   */
+  async function pollJob(jobId: string) {
+    const started = Date.now()
+
+    while (Date.now() - started < 10 * 60_000) {
+      await new Promise(r => setTimeout(r, 2500))
+
+      let job: JobStatus
+      try {
+        const res = await fetch(`/api/jobs/${jobId}`)
+        if (!res.ok) break
+        job = await res.json()
+      } catch { break }
+
+      if (job.status === 'completed') {
+        const msg = job.failed === 0
+          ? `Klaar. Alle ${job.sent} reviewverzoeken zijn verstuurd.`
+          : `${job.sent} van ${job.total} verstuurd, ${job.failed} mislukt (meestal een adres dat niet bestaat).`
+        addMessage('assistant', msg + '\n\nJe kunt een nieuw bestand uploaden om opnieuw te beginnen.')
+        setChatState('done')
+        return
+      }
+
+      if (job.status === 'failed') {
+        addMessage('assistant', 'Het versturen is vastgelopen. Neem contact op als dit blijft gebeuren.')
+        setChatState('done')
+        return
+      }
+    }
+
+    addMessage('assistant', 'Het versturen loopt nog op de achtergrond. Je kunt dit venster sluiten.')
+    setChatState('done')
   }
 
   function handleUserMessage(text: string) {
@@ -176,132 +168,71 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
 
   const renderContent = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
 
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', height: '100%',
-      background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-      border: '1px solid rgba(255,255,255,0.45)', borderRadius: '20px', overflow: 'hidden',
-      boxShadow: '0 8px 32px rgba(26,68,232,0.06), 0 2px 8px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.6)',
-    }}>
-      {/* Cloudy Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', flexShrink: 0, position: 'relative', overflow: 'hidden',
-        background: 'linear-gradient(135deg, #1a44e8 0%, #3a5ff5 50%, #5b7aff 100%)',
-        padding: '16px 20px', gap: '14px', borderRadius: '20px 20px 0 0',
-      }}>
-        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 80% 40%, rgba(255,255,255,.12) 0%, transparent 60%)' }} />
-        <CloudyAvatar />
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '2px' }}>Cloudy</div>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,.6)' }}>Je digitale assistent</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'rgba(255,255,255,.65)', marginTop: '2px' }}>
-            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ade80', boxShadow: '0 0 5px rgba(74,222,128,.7)', animation: 'pulse-dot 2s ease-in-out infinite' }} />
-            Online
-          </div>
-        </div>
-      </div>
+  const busy = chatState === 'extracting' || chatState === 'sending'
 
-      {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', padding: '18px 18px 6px' }}>
+  return (
+    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card">
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
         {messages.map((m, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'flex-end', gap: '8px', flexDirection: m.role === 'user' ? 'row-reverse' : 'row' }}>
-            <BubbleAvatar role={m.role === 'user' ? 'user' : 'ai'} />
-            <div style={{
-              maxWidth: '80%', padding: '10px 14px', fontSize: '13.5px', lineHeight: 1.55,
-              ...(m.role === 'user' ? {
-                background: 'linear-gradient(135deg, #1a44e8, #3a5ff5)', color: 'white',
-                borderRadius: '16px 16px 4px 16px',
-              } : {
-                background: 'rgba(255,255,255,0.7)', color: '#1a1f36',
-                borderRadius: '16px 16px 16px 4px',
-                border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
-              }),
-            }} dangerouslySetInnerHTML={{ __html: renderContent(m.content) }} />
+          <div key={i} className={cn('flex', m.role === 'user' && 'justify-end')}>
+            <div
+              className={cn(
+                'max-w-[80%] rounded-md px-4 py-3 text-base',
+                m.role === 'user'
+                  ? 'bg-navy text-surface'
+                  : 'border border-line bg-canvas text-ink',
+              )}
+              dangerouslySetInnerHTML={{ __html: renderContent(m.content) }}
+            />
           </div>
         ))}
 
-        {/* Quick reply buttons */}
-        {chatState === 'awaiting_confirmation' && (
-          <div style={{ display: 'flex', gap: '8px', paddingLeft: '34px' }}>
-            <button onClick={() => handleUserMessage('ja')} style={{
-              padding: '8px 18px', color: 'white', fontSize: '13px', fontWeight: 500,
-              borderRadius: '12px', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'linear-gradient(135deg, #1a44e8, #3a5ff5)',
-              boxShadow: '0 4px 14px rgba(26,68,232,.3), inset 0 1px 0 rgba(255,255,255,.15)',
-            }}>
-              Ja, versturen
-            </button>
-            <button onClick={() => handleUserMessage('nee')} style={{
-              padding: '8px 18px', fontSize: '13px', fontWeight: 500,
-              borderRadius: '12px', cursor: 'pointer', fontFamily: 'inherit',
-              background: 'rgba(255,255,255,0.6)', color: '#6b7280',
-              border: '1px solid rgba(255,255,255,0.5)', backdropFilter: 'blur(8px)',
-            }}>
-              Nee, stoppen
-            </button>
-          </div>
-        )}
-
-        {/* Typing indicator */}
-        {(chatState === 'extracting' || chatState === 'sending') && (
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-            <BubbleAvatar role="ai" />
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: '4px',
-              background: 'rgba(26,68,232,0.06)', padding: '12px 14px',
-              borderRadius: '16px 16px 16px 4px', border: '1px solid rgba(26,68,232,0.08)',
-            }}>
-              {[0, 1, 2].map(i => (
-                <span key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#1a44e8', display: 'block', animation: `bounce-dot .9s infinite ${i * 0.15}s` }} />
-              ))}
-            </div>
-          </div>
+        {busy && (
+          <p className="flex items-center gap-2 text-sm text-ink-muted">
+            <Spinner />
+            Bezig…
+          </p>
         )}
 
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
-      <div style={{
-        flexShrink: 0, display: 'flex', gap: '10px',
-        padding: '12px 16px 16px',
-        borderTop: '1px solid rgba(255,255,255,0.3)',
-        background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(12px)',
-      }}>
-        <form onSubmit={e => { e.preventDefault(); handleUserMessage(input) }} style={{ display: 'flex', flex: 1, gap: '10px' }}>
-          <input
-            type="text" value={input} onChange={e => setInput(e.target.value)}
+      {/* De bevestiging is de kern van het scherm, dus die staat vast onderin
+          en scrolt niet weg met het gesprek. */}
+      <div className="shrink-0 border-t border-line p-4">
+        {chatState === 'awaiting_confirmation' && (
+          <div className="mb-4 flex gap-3">
+            <Button onClick={() => handleUserMessage('ja')}>Ja, versturen</Button>
+            <Button variant="secondary" onClick={() => handleUserMessage('nee')}>
+              Nee, stoppen
+            </Button>
+          </div>
+        )}
+
+        <form
+          onSubmit={e => { e.preventDefault(); handleUserMessage(input) }}
+          className="flex gap-3"
+        >
+          <Input
+            type="text"
+            value={input}
+            onChange={e => setInput(e.target.value)}
             placeholder={
-              chatState === 'awaiting_confirmation' ? 'Typ "ja" om te versturen of stel een vraag...'
+              chatState === 'awaiting_confirmation' ? 'Stel een vraag over de lijst…'
               : chatState === 'done' ? 'Upload een nieuw bestand om opnieuw te beginnen'
-              : 'Typ je antwoord...'
+              : 'Typ je antwoord…'
             }
-            disabled={chatState === 'extracting' || chatState === 'sending'}
-            style={{
-              flex: 1, height: '44px', borderRadius: '14px', padding: '0 16px',
-              fontSize: '13.5px', fontFamily: 'inherit', color: '#1a1f36', outline: 'none',
-              background: 'rgba(255,255,255,0.6)', backdropFilter: 'blur(12px)',
-              border: '1.5px solid rgba(255,255,255,0.4)',
-              boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.04)',
-            }}
+            disabled={busy}
           />
-          <button type="submit"
-            disabled={!input.trim() || chatState === 'extracting' || chatState === 'sending'}
-            style={{
-              width: '44px', height: '44px', borderRadius: '14px', border: 'none', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: (!input.trim() || chatState === 'extracting' || chatState === 'sending') ? 'not-allowed' : 'pointer',
-              ...( (!input.trim() || chatState === 'extracting' || chatState === 'sending')
-                ? { background: 'rgba(107,114,128,0.3)' }
-                : { background: 'linear-gradient(135deg, #1a44e8, #3a5ff5)', boxShadow: '0 4px 14px rgba(26,68,232,.3)' }
-              ),
-            }}
+          {/* Neutraal: goud blijft gereserveerd voor de bevestiging hierboven. */}
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={!input.trim() || busy}
+            className="shrink-0"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" /><polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          </button>
+            Verstuur
+          </Button>
         </form>
       </div>
     </div>

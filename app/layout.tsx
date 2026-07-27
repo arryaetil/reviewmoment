@@ -15,15 +15,15 @@ const dmSerif = DM_Serif_Display({
 })
 
 export const metadata: Metadata = {
-  title: 'CloudCast Review Booster',
-  description: 'Stuur automatisch Google Review-verzoeken naar uw klanten',
+  title: 'Reviewmoment',
+  description: 'Vraag elke klant op het juiste moment om een Google-review',
+  icons: { icon: '/favicon.svg' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl">
-      <body className={`${dmSans.variable} ${dmSerif.variable} font-sans`}
-            style={{ fontFamily: 'var(--font-body), sans-serif' }}>
+      <body className={`${dmSans.variable} ${dmSerif.variable} font-sans`}>
         {children}
       </body>
     </html>

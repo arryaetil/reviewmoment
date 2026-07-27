@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 96" width="116" height="96" role="img" aria-label="reviewmoment.app">
+  <title>reviewmoment.app</title>
+  <!-- Alleen de ballon met sterren, zonder woordmerk. -->
+  <g transform="translate(4 4)">
+    <path
+      d="M16 0
+         H92 A16 16 0 0 1 108 16
+         V50 A16 16 0 0 1 92 66
+         H56 L26 88 L30 66
+         H16 A16 16 0 0 1 0 50
+         V16 A16 16 0 0 1 16 0 Z"
+      fill="none"
+      stroke="#1E3243"
+      stroke-width="5"
+      stroke-linejoin="round"
+    />
+    <g fill="#D2A03B">
+      <path transform="translate(16 33) scale(7)" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3634 0.1181 L0.588 0.809 L0 0.382 L-0.588 0.809 L-0.3634 0.1181 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+      <path transform="translate(35 33) scale(7)" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3634 0.1181 L0.588 0.809 L0 0.382 L-0.588 0.809 L-0.3634 0.1181 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+      <path transform="translate(54 33) scale(7)" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3634 0.1181 L0.588 0.809 L0 0.382 L-0.588 0.809 L-0.3634 0.1181 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+      <path transform="translate(73 33) scale(7)" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3634 0.1181 L0.588 0.809 L0 0.382 L-0.588 0.809 L-0.3634 0.1181 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+      <path transform="translate(92 33) scale(7)" d="M0 -1 L0.2245 -0.309 L0.951 -0.309 L0.3634 0.1181 L0.588 0.809 L0 0.382 L-0.588 0.809 L-0.3634 0.1181 L-0.951 -0.309 L-0.2245 -0.309 Z"/>
+    </g>
+  </g>
+</svg>
