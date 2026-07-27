@@ -32,19 +32,28 @@ async function main() {
     process.exit(1)
   }
 
-  const [tenant] = await db
-    .insert(tenants)
-    .values({
-      businessName: 'Platformbeheer',
-      googleReviewLink: 'https://g.page/r/placeholder',
-      subdomain: '__admin',
-      sendingDomain: '__admin.invalid',
-      fromName: 'Platformbeheer',
-      replyTo: normalized,
-      domainStatus: 'pending',
-      active: true,
-    })
-    .returning({ id: tenants.id })
+  let [tenant] = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.subdomain, '__admin'))
+    .limit(1)
+
+  if (!tenant) {
+    const [createdTenant] = await db
+      .insert(tenants)
+      .values({
+        businessName: 'Platformbeheer',
+        googleReviewLink: 'https://g.page/r/placeholder',
+        subdomain: '__admin',
+        sendingDomain: '__admin.invalid',
+        fromName: 'Platformbeheer',
+        replyTo: normalized,
+        domainStatus: 'pending',
+        active: true,
+      })
+      .returning({ id: tenants.id })
+    tenant = createdTenant
+  }
 
   await db.insert(users).values({
     tenantId: tenant.id,

@@ -34,8 +34,7 @@ function checkEnvVars() {
     'SENDING_ROOT_DOMAIN',
     'CLOUDFLARE_API_TOKEN',
     'CLOUDFLARE_ZONE_ID',
-    'UPSTASH_REDIS_REST_URL',
-    'UPSTASH_REDIS_REST_TOKEN',
+    'REDIS_URL',
     'QSTASH_TOKEN',
     'QSTASH_CURRENT_SIGNING_KEY',
     'QSTASH_NEXT_SIGNING_KEY',
@@ -106,16 +105,18 @@ async function checkDatabase() {
 }
 
 async function checkRedis() {
-  const url = env('UPSTASH_REDIS_REST_URL')
-  const token = env('UPSTASH_REDIS_REST_TOKEN')
-  if (!url || !token) return record('Upstash Redis', false, 'url of token ontbreekt')
+  const url = env('REDIS_URL')
+  if (!url) return record('Railway Redis', false, 'REDIS_URL ontbreekt')
 
   try {
-    const res = await fetch(`${url}/ping`, { headers: { Authorization: `Bearer ${token}` } })
-    const json = await res.json()
-    record('Upstash Redis', res.ok, res.ok ? String(json.result ?? 'PONG') : `HTTP ${res.status}`)
+    const { createClient } = await import('redis')
+    const redis = createClient({ url })
+    await redis.connect()
+    const result = await redis.ping()
+    await redis.quit()
+    record('Railway Redis', result === 'PONG', result)
   } catch (err) {
-    record('Upstash Redis', false, err instanceof Error ? err.message : 'onbereikbaar')
+    record('Railway Redis', false, err instanceof Error ? err.message : 'onbereikbaar')
   }
 }
 

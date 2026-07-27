@@ -88,7 +88,7 @@ De klant is verwerkingsverantwoordelijke, wij zijn verwerker.
 - Elke query op tenantdata filtert expliciet op `tenantId`.
 - `/api/jobs/process` en `/api/webhooks/resend` staan buiten de sessie-auth en
   verifiëren hun eigen handtekening (QStash respectievelijk Svix).
-- Rate limiting via Upstash Redis, gedeeld over alle instanties. De in-memory
+- Rate limiting via Railway Redis, gedeeld over alle instanties. De in-memory
   variant uit de POC telde per serverless instantie en was daardoor
   betekenisloos.
 - Inlogfouten geven één generieke melding, en bij een onbekend adres wordt
@@ -134,7 +134,7 @@ Daarna klanten aanmaken via `POST /api/admin/tenants` — zonder redeploy.
    directe URL (5432) als `DIRECT_DATABASE_URL`.
 2. **Cloudflare** — zone voor `SENDING_ROOT_DOMAIN`, API-token met alleen
    `Zone:DNS:Edit` op die ene zone.
-3. **Upstash** — Redis-database plus QStash; signing keys in de env.
+3. **Railway Redis + Upstash** — Redis draait privé in Railway; QStash levert de wachtrij en signing keys.
 4. **Resend** — API-key en een webhook naar `/api/webhooks/resend` voor
    `email.bounced` en `email.complained`.
 
