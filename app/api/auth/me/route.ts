@@ -1,23 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken, TOKEN_NAME } from '@/lib/auth'
+import { NextResponse } from 'next/server'
+import { getSession } from '@/lib/session'
 
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get(TOKEN_NAME)?.value
-  if (!token) {
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export async function GET() {
+  const session = await getSession()
+  if (!session) {
     return NextResponse.json({ error: 'Niet ingelogd' }, { status: 401 })
   }
 
-  const payload = await verifyToken(token)
-  if (!payload) {
-    return NextResponse.json({ error: 'Sessie verlopen' }, { status: 401 })
-  }
+  const { user, tenant } = session
 
   return NextResponse.json({
-    email: payload.email,
-    businessName: payload.businessName,
-    googleReviewLink: payload.googleReviewLink,
-    fromDomain: payload.fromDomain,
-    fromName: payload.fromName,
-    replyTo: payload.replyTo,
+    email: user.email,
+    role: user.role,
+    businessName: tenant.businessName,
+    googleReviewLink: tenant.googleReviewLink,
+    sendingDomain: tenant.sendingDomain,
+    domainStatus: tenant.domainStatus,
+    fromName: tenant.fromName,
+    replyTo: tenant.replyTo,
+    monthlyEmailLimit: tenant.monthlyEmailLimit,
   })
 }

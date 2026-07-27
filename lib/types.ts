@@ -14,10 +14,24 @@ export interface ExtractResult {
   }
 }
 
-export interface SendResult {
+/** Antwoord van /api/send: de opdracht is ingepland, nog niet verstuurd. */
+export interface QueueResponse {
+  jobId?: string
+  queued?: number
+  skippedUnsubscribed?: number
+  remainingThisMonth?: number
+  error?: string
+}
+
+/** Antwoord van /api/jobs/[id]: voortgang van een verzendopdracht. */
+export interface JobStatus {
+  id: string
+  status: 'queued' | 'processing' | 'completed' | 'failed'
+  total: number
   sent: number
   failed: number
-  errors: string[]
+  createdAt: string
+  completedAt: string | null
 }
 
 export interface ChatMessage {

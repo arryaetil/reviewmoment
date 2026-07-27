@@ -1,33 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, TOKEN_NAME } from '@/lib/auth'
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login']
+const PUBLIC_PATHS = [
+  '/login',
+  '/api/auth/login',
+  '/api/health',      // healthcheck van de hostingomgeving
+  '/api/webhooks/',   // Resend-webhooks: eigen signature-verificatie
+  '/api/jobs/process', // QStash-worker: eigen signature-verificatie
+  '/u/',              // uitschrijflinks uit e-mails
+]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (
-    PUBLIC_PATHS.some(p => pathname.startsWith(p)) ||
+    PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/favicon') ||
-    pathname === '/logo.png' ||
-    pathname === '/logo-icon.png'
+    // De logo's staan op het inlogscherm, dus vóór er een sessie is.
+    pathname.startsWith('/logo')
   ) {
     return NextResponse.next()
   }
 
   const token = req.cookies.get(TOKEN_NAME)?.value
+  const isApi = pathname.startsWith('/api/')
 
   if (!token) {
-    if (pathname.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Niet geautoriseerd' }, { status: 401 })
-    }
-    return NextResponse.redirect(new URL('/login', req.url))
+    return isApi
+      ? NextResponse.json({ error: 'Niet geautoriseerd' }, { status: 401 })
+      : NextResponse.redirect(new URL('/login', req.url))
   }
 
   const payload = await verifyToken(token)
   if (!payload) {
-    if (pathname.startsWith('/api/')) {
+    if (isApi) {
       return NextResponse.json({ error: 'Sessie verlopen' }, { status: 401 })
     }
     const response = NextResponse.redirect(new URL('/login', req.url))
@@ -35,15 +42,9 @@ export async function middleware(req: NextRequest) {
     return response
   }
 
-  const headers = new Headers(req.headers)
-  headers.set('x-user-email', payload.email)
-  headers.set('x-user-business-name', payload.businessName)
-  headers.set('x-user-google-review-link', payload.googleReviewLink)
-  headers.set('x-user-from-domain', payload.fromDomain)
-  headers.set('x-user-from-name', payload.fromName)
-  headers.set('x-user-reply-to', payload.replyTo)
-
-  return NextResponse.next({ request: { headers } })
+  // Bewust géén x-user-* headers meer. De route handlers lezen de tenantconfig
+  // zelf uit de database via getSession(); middleware doet alleen de poortwacht.
+  return NextResponse.next()
 }
 
 export const config = {

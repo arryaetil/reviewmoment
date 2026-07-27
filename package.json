@@ -1,19 +1,30 @@
 {
-  "name": "cloudcast-poc",
+  "name": "reviewmoment",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "preflight": "tsx scripts/preflight.ts",
+    "seed:admin": "tsx scripts/seed-admin.ts",
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.27.0",
+    "@upstash/qstash": "^2.11.3",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
     "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
     "jose": "^6.2.3",
     "next": "^14.2.35",
     "papaparse": "^5.4.1",
+    "postgres": "^3.4.9",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^3.4.0",
@@ -26,8 +37,10 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
+    "drizzle-kit": "^0.31.10",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.19.2"
   }
 }

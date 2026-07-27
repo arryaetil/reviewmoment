@@ -1,94 +1,155 @@
-import { Resend } from 'resend'
 import { NextRequest, NextResponse } from 'next/server'
-import { Contact, SendResult } from '@/lib/types'
-import { isRateLimited } from '@/lib/rate-limit'
+import { inArray, and, eq } from 'drizzle-orm'
+import { db } from '@/lib/db'
+import { sendJobs, sendJobRecipients, suppressions } from '@/lib/db/schema'
+import { getSession } from '@/lib/session'
+import { sendLimiter, consumeMonthlyQuota, releaseQuota } from '@/lib/rate-limit'
+import { enqueueJob } from '@/lib/queue'
+import { hashEmail } from '@/lib/unsubscribe'
+import { prepareRecipients } from '@/lib/recipients'
+import type { Contact } from '@/lib/types'
 
-function esc(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
-}
+export const runtime = 'nodejs'
 
-function buildHtml(name: string, bizName: string, reviewLink: string, replyTo: string): string {
-  const n = esc(name), b = esc(bizName)
-  return `
-<!DOCTYPE html>
-<html lang="nl">
-<body style="font-family:Arial,sans-serif;color:#1a1a1a;max-width:560px;margin:0 auto;padding:32px 16px">
-  <p>Hallo <strong>${n}</strong>,</p>
-  <p>Bedankt dat u voor <strong>${b}</strong> heeft gekozen.</p>
-  <p>We hopen dat u tevreden bent over onze service. Uw feedback helpt ons om zichtbaar te blijven voor nieuwe klanten en onze dienstverlening verder te verbeteren.</p>
-  <p>Zou u een korte Google Review willen achterlaten via onderstaande link?</p>
-  <p style="margin:24px 0">
-    <a href="${esc(reviewLink)}"
-       style="background:#1a44e8;color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
-      Review achterlaten
-    </a>
-  </p>
-  <p>Alvast hartelijk bedankt.</p>
-  <p>Met vriendelijke groet,<br><strong>${b}</strong></p>
-  <hr style="border:none;border-top:1px solid #eee;margin:32px 0">
-  <p style="font-size:11px;color:#999">
-    U ontvangt dit bericht omdat u recent klant bent geweest bij ${b}.
-    <a href="mailto:${esc(replyTo)}?subject=Uitschrijven">Uitschrijven</a>
-  </p>
-</body>
-</html>`
-}
+const MAX_PER_JOB = 2000
 
+/**
+ * Deze route verstuurt zelf niets meer.
+ *
+ * In de POC liep hier een for-loop die per contact een await op Resend deed.
+ * Bij 500 adressen is dat al snel enkele minuten — ruim voorbij de limiet van
+ * een serverless functie. De functie werd dan halverwege afgekapt, waarbij een
+ * deel van de klanten wél mail kreeg en de gebruiker een timeout zag, zonder
+ * dat iemand wist waar het was gestopt. Opnieuw proberen betekende dubbele
+ * mail naar de eerste helft.
+ *
+ * Nu leggen we de opdracht vast in de database en zetten we hem in de wachtrij.
+ * De worker verstuurt in batches en houdt per ontvanger bij wat er is gebeurd.
+ */
 export async function POST(req: NextRequest) {
-  const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
-  if (isRateLimited('send', ip, 5)) {
-    return NextResponse.json({ error: 'Te veel verzoeken. Probeer over een minuut opnieuw.' }, { status: 429 })
+  const session = await getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Niet geautoriseerd' }, { status: 401 })
+  }
+  const { user, tenant } = session
+
+  const { success } = await sendLimiter.limit(tenant.id)
+  if (!success) {
+    return NextResponse.json(
+      { error: 'Te veel verzoeken achter elkaar. Probeer het zo opnieuw.' },
+      { status: 429 }
+    )
   }
 
-  if (!process.env.RESEND_API_KEY) {
-    return NextResponse.json({ error: 'E-mailservice niet geconfigureerd.' }, { status: 500 })
+  if (tenant.domainStatus !== 'verified') {
+    return NextResponse.json(
+      {
+        error:
+          'Je verzenddomein is nog niet geverifieerd. Zodra dat rond is kun je versturen.',
+        domainStatus: tenant.domainStatus,
+      },
+      { status: 409 }
+    )
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY)
+  let body: { contacts?: Contact[] }
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Ongeldig verzoek.' }, { status: 400 })
+  }
 
-  const bizName    = req.headers.get('x-user-business-name') ?? 'Ons bedrijf'
-  const reviewLink = req.headers.get('x-user-google-review-link') ?? '#'
-  const fromDomain = req.headers.get('x-user-from-domain') ?? ''
-  const fromName   = req.headers.get('x-user-from-name') ?? bizName
-  const replyTo    = req.headers.get('x-user-reply-to') ?? ''
-
-  const from = `${fromName} <noreply@${fromDomain}>`
-
-  const body = await req.json()
-  const contacts: Contact[] = body.contacts
-
-  if (!contacts || !Array.isArray(contacts)) {
+  if (!Array.isArray(body.contacts)) {
     return NextResponse.json({ error: 'Ongeldige contactenlijst' }, { status: 400 })
   }
 
-  const valid = contacts.filter(c => c.valid && c.email)
-  if (valid.length === 0) {
+  // Valideren en ontdubbelen zit in lib/recipients.ts, zodat die logica
+  // getest kan worden zonder database of sessie.
+  const { recipients: candidates } = prepareRecipients(body.contacts)
+
+  if (candidates.length === 0) {
     return NextResponse.json({ error: 'Geen geldige e-mailadressen om te versturen' }, { status: 400 })
   }
 
-  if (valid.length > 500) {
-    return NextResponse.json({ error: 'Maximaal 500 e-mails per keer' }, { status: 400 })
+  if (candidates.length > MAX_PER_JOB) {
+    return NextResponse.json(
+      { error: `Maximaal ${MAX_PER_JOB} adressen per verzending.` },
+      { status: 400 }
+    )
   }
 
-  const result: SendResult = { sent: 0, failed: 0, errors: [] }
+  // Uitschrijvingen en eerdere bounces eruit filteren.
+  //
+  // Let op het onderscheid: dit is géén review gating. We filteren niet op
+  // tevredenheid of verwachte score — we respecteren alleen mensen die hebben
+  // aangegeven geen mail meer te willen, en adressen die niet bestaan. Iedere
+  // klant die niet heeft afgemeld krijgt hetzelfde verzoek.
+  const hashes = candidates.map((c) => hashEmail(c.email))
+  const suppressed = await db
+    .select({ hash: suppressions.emailHash })
+    .from(suppressions)
+    .where(and(eq(suppressions.tenantId, tenant.id), inArray(suppressions.emailHash, hashes)))
 
-  for (const contact of valid) {
-    try {
-      await resend.emails.send({
-        from,
-        to: contact.email,
-        reply_to: replyTo,
-        subject: `Bedankt voor uw bezoek aan ${bizName}`,
-        html: buildHtml(contact.name || 'klant', bizName, reviewLink, replyTo),
-      })
-      result.sent++
-    } catch (err) {
-      result.failed++
-      console.error(`[send] failed for contact index ${valid.indexOf(contact)}`)
-    }
+  const suppressedSet = new Set(suppressed.map((s) => s.hash))
+  const recipients = candidates.filter((c) => !suppressedSet.has(hashEmail(c.email)))
+  const skippedUnsubscribed = candidates.length - recipients.length
+
+  if (recipients.length === 0) {
+    return NextResponse.json(
+      { error: 'Alle adressen op deze lijst hebben zich afgemeld.' },
+      { status: 400 }
+    )
   }
 
-  console.log(`[send] sent=${result.sent} failed=${result.failed}`)
+  const quota = await consumeMonthlyQuota(tenant.id, recipients.length, tenant.monthlyEmailLimit)
+  if (!quota.allowed) {
+    return NextResponse.json(
+      {
+        error: `Maandlimiet bereikt. Je hebt nog ${quota.remaining} e-mails over deze maand.`,
+        remaining: quota.remaining,
+      },
+      { status: 429 }
+    )
+  }
 
-  return NextResponse.json(result)
+  try {
+    const jobId = await db.transaction(async (tx) => {
+      const [job] = await tx
+        .insert(sendJobs)
+        .values({
+          tenantId: tenant.id,
+          createdByUserId: user.id,
+          status: 'queued',
+          totalRecipients: recipients.length,
+          fromAddress: `${tenant.fromName} <reviews@${tenant.sendingDomain}>`,
+          reviewLink: tenant.googleReviewLink,
+        })
+        .returning({ id: sendJobs.id })
+
+      await tx.insert(sendJobRecipients).values(
+        recipients.map((r) => ({ jobId: job.id, email: r.email, name: r.name }))
+      )
+
+      return job.id
+    })
+
+    await enqueueJob({ jobId, batch: 0 })
+
+    console.log(`[send] job=${jobId} tenant=${tenant.id} queued=${recipients.length}`)
+
+    return NextResponse.json({
+      jobId,
+      queued: recipients.length,
+      skippedUnsubscribed,
+      remainingThisMonth: quota.remaining,
+    })
+  } catch (err) {
+    // Quotum teruggeven: er is niets verstuurd, dus het mag niet meetellen.
+    await releaseQuota(tenant.id, recipients.length)
+    console.error('[send] kon opdracht niet aanmaken', err instanceof Error ? err.message : '')
+    return NextResponse.json(
+      { error: 'Kon de verzending niet inplannen. Probeer het opnieuw.' },
+      { status: 500 }
+    )
+  }
 }
