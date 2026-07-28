@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import FileUpload from '@/components/FileUpload'
 import Chat from '@/components/Chat'
-import { Card, Spinner, cn } from '@/components/ui'
+import { Card, cn } from '@/components/ui'
 import { RawRow } from '@/lib/types'
 import { domeinUitleg, magVersturen } from '@/lib/domain-status'
 
@@ -29,24 +29,15 @@ export default function Home() {
       .finally(() => setLaden(false))
   }, [])
 
-  if (laden) {
-    return (
-      <AppShell>
-        <div className="flex flex-1 items-center justify-center">
-          <Spinner />
-        </div>
-      </AppShell>
-    )
-  }
-
   /*
    * Wie niet kan versturen, ziet ook geen uploadveld.
    *
-   * Eerder bleek dat pas ná het uploaden, het wachten op de analyse en het
-   * indrukken van de verzendknop. Dat is werk dat nooit tot iets kon leiden, en
-   * het beheeraccount kwam er standaard op uit.
+   * De controle draait op de achtergrond en het scherm wacht er niet op. Deed
+   * het dat wel, dan opende de app met een leeg vlak en een spinnertje zolang
+   * het rondje langs Resend duurde — bij elke keer laden opnieuw. Bijna iedereen
+   * mag gewoon versturen; de uitzondering mag een fractie later verschijnen.
    */
-  if (account && !magVersturen(account.domainStatus)) {
+  if (!laden && account && !magVersturen(account.domainStatus)) {
     return (
       <AppShell>
         <div className="flex flex-1 items-center justify-center p-8">
