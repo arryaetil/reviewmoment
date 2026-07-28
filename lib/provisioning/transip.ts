@@ -159,7 +159,10 @@ export async function upsertRecord(record: DnsRecord, mustBeUnder: string): Prom
   const domain = zone()
   const name = toZoneName(record.name, domain, mustBeUnder)
   const content = toContent(record)
-  const expire = record.ttl ?? 3600
+  // Ook hier afvangen: TransIP weigert het hele verzoek bij een TTL die geen
+  // getal is, en die fout ("supply the 'expire' parameter") wijst niet naar
+  // waar hij vandaan komt.
+  const expire = Number.isFinite(record.ttl) && record.ttl! > 0 ? record.ttl! : 3600
 
   const existing = await listZone(domain)
   const conflicts = existing.filter((e) => e.name === name && e.type === record.type)

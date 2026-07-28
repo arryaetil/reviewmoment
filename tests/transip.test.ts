@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { registeredDomain, toZoneName, toContent } from '../lib/provisioning/transip'
+import { toTtl } from '../lib/provisioning/domain'
 
 const ZONE = 'reviewmoment.nl'
 const KLANT = 'kvik.send.reviewmoment.nl'
@@ -72,5 +73,28 @@ describe('inhoud van een record', () => {
       toContent({ type: 'TXT', name: 'x', value: 'v=spf1 include:amazonses.com ~all' }),
       'v=spf1 include:amazonses.com ~all'
     )
+  })
+})
+
+describe('TTL normaliseren', () => {
+  /*
+   * Resend zet hier de tekst "Auto" neer. Dat werd NaN, ging als null de lijn
+   * over, en TransIP weigerde het verzoek met een melding over een ontbrekende
+   * parameter — een fout die nergens naar Resend wijst.
+   */
+  test('"Auto" valt terug op een uur', () => {
+    assert.equal(toTtl('Auto'), 3600)
+  })
+
+  test('leeg of onzin valt terug op een uur', () => {
+    assert.equal(toTtl(undefined), 3600)
+    assert.equal(toTtl(''), 3600)
+    assert.equal(toTtl(0), 3600)
+    assert.equal(toTtl(-1), 3600)
+  })
+
+  test('een echt getal blijft staan', () => {
+    assert.equal(toTtl('300'), 300)
+    assert.equal(toTtl(86400), 86400)
   })
 })

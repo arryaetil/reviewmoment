@@ -62,6 +62,12 @@ export function subdomainFor(businessName: string): string {
   return slug || 'klant'
 }
 
+/** Een TTL die geen bruikbaar getal is valt terug op een uur. */
+export function toTtl(raw: unknown): number {
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : 3600
+}
+
 export function rootDomain(): string {
   const root = process.env.SENDING_ROOT_DOMAIN
   if (!root) throw new Error('SENDING_ROOT_DOMAIN ontbreekt')
@@ -103,11 +109,14 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
     .where(eq(tenants.id, tenantId))
 
   // 2. De door Resend gevraagde records in de DNS-zone wegschrijven.
+  // Resend zet in dit veld vaak de tekst "Auto" in plaats van een getal, en
+  // Number('Auto') is NaN. Dat werd als null verstuurd, waarop de DNS-provider
+  // klaagt dat de TTL ontbreekt.
   const records: DnsRecord[] = domain.records.map((r) => ({
     type: r.type,
     name: r.name,
     value: r.value,
-    ttl: r.ttl ? Number(r.ttl) : 3600,
+    ttl: toTtl(r.ttl),
     priority: r.priority,
   }))
 
