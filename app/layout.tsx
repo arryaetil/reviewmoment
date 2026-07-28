@@ -1,17 +1,11 @@
 import type { Metadata } from 'next'
-import { DM_Sans, DM_Serif_Display } from 'next/font/google'
+import { DM_Sans } from 'next/font/google'
 import './globals.css'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],
   variable: '--font-body',
   weight: ['300', '400', '500', '600'],
-})
-
-const dmSerif = DM_Serif_Display({
-  subsets: ['latin'],
-  variable: '--font-heading',
-  weight: '400',
 })
 
 export const metadata: Metadata = {
@@ -23,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="nl">
-      <body className={`${dmSans.variable} ${dmSerif.variable} font-sans`}>
+      <body className={`${dmSans.variable} font-sans`}>
         {children}
       </body>
     </html>

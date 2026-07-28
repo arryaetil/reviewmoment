@@ -119,12 +119,12 @@
   }
 
   /*
-   * De serif is een displayletter en staat standaard te ruim op deze groottes.
-   * Iets aantrekken laat een titel als één woordbeeld lezen in plaats van als
-   * losse letters.
+   * Eén familie voor alles; hiërarchie komt van grootte en witruimte. Op de
+   * grootste maat staat DM Sans wat ruim — een fractie aantrekken laat een
+   * titel als één woordbeeld lezen in plaats van als losse letters.
    */
-  .font-heading {
-    letter-spacing: -0.015em;
+  .text-xl {
+    letter-spacing: -0.02em;
   }
 }
 

@@ -42,7 +42,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
           <img src="/logo.svg" alt="reviewmoment.nl" width={320} height={178} className="h-20 w-auto" />
-          <h1 className="mt-8 font-heading text-xl">Inloggen</h1>
+          <h1 className="mt-8 text-xl font-medium">Inloggen</h1>
           <p className="mt-2 text-base text-ink-muted">
             Log in om reviewverzoeken te versturen.
           </p>

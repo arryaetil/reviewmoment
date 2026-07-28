@@ -34,8 +34,9 @@ Goud draagt navy-tekst, nooit wit: wit op `#D2A03B` haalt 2.3:1, navy haalt
 
 ## Typografie
 
-DM Sans voor alles, DM Serif Display voor paginatitels. Gepaard op een
-contrastas (schreefloos + schreef), niet twee vergelijkbare schreeflozen.
+Eén familie: DM Sans. Er stond een display-schreef op de paginatitels, maar
+die deed op een inlogscherm met één woord meer aan versiering dan aan
+hiërarchie — en hiërarchie hoort hier uit grootte en witruimte te komen.
 
 Vier groottes, twee gewichten. Meer niet, in de hele applicatie.
 

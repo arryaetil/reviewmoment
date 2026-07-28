@@ -81,7 +81,7 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-y-auto px-8 py-12">
         <div className="mx-auto max-w-2xl">
           <header className="mb-12">
-            <h1 className="font-heading text-xl">Instellingen</h1>
+            <h1 className="text-xl font-medium">Instellingen</h1>
             <p className="mt-3 text-base text-ink-muted">
               Zo staat je account ingesteld. Neem contact op als er iets moet veranderen.
             </p>

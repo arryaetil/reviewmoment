@@ -111,7 +111,7 @@ export default function FileUpload({ onDataParsed, compact }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h2 className="font-heading text-lg">Klantenbestand uploaden</h2>
+        <h2 className="text-lg font-medium">Klantenbestand uploaden</h2>
         <p className="mt-2 text-base text-ink-muted">
           Een CSV- of Excelbestand met klantgegevens. De e-mailadressen worden
           automatisch herkend.

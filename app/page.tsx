@@ -42,7 +42,7 @@ export default function Home() {
       <AppShell>
         <div className="flex flex-1 items-center justify-center p-8">
           <Card className="w-full max-w-lg">
-            <h1 className="font-heading text-lg">Nog niet klaar om te versturen</h1>
+            <h1 className="text-lg font-medium">Nog niet klaar om te versturen</h1>
             <p className="mt-4 text-base text-ink-muted">
               {domeinUitleg(account.sendingDomain, account.domainStatus)}
             </p>

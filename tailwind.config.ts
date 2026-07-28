@@ -36,7 +36,6 @@ const config: Config = {
       },
       fontFamily: {
         sans: ['var(--font-body)', 'DM Sans', 'sans-serif'],
-        heading: ['var(--font-heading)', 'DM Serif Display', 'serif'],
       },
       fontSize: {
         sm: ['var(--font-size-sm)', { lineHeight: 'var(--line-height-sm)' }],
