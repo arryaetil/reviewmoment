@@ -7,6 +7,8 @@ import { sendLimiter, consumeMonthlyQuota, releaseQuota } from '@/lib/rate-limit
 import { enqueueJob } from '@/lib/queue'
 import { hashEmail } from '@/lib/unsubscribe'
 import { prepareRecipients } from '@/lib/recipients'
+import { refreshDomainStatus } from '@/lib/provisioning/domain'
+import { domeinUitleg } from '@/lib/domain-status'
 import type { Contact } from '@/lib/types'
 
 export const runtime = 'nodejs'
@@ -41,13 +43,20 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  if (tenant.domainStatus !== 'verified') {
+  /*
+   * De opgeslagen status kan achterlopen: verificatie rondt af bij Resend, niet
+   * bij ons, en zonder deze controle blijft iemand op "nog niet geverifieerd"
+   * hangen terwijl het allang klaar is. Dat is precies het moment waarop hij
+   * gaat bellen. Mislukt de navraag, dan gaan we uit van wat we hadden.
+   */
+  let domainStatus: string = tenant.domainStatus
+  if (domainStatus !== 'verified') {
+    domainStatus = await refreshDomainStatus(tenant.id).catch(() => tenant.domainStatus)
+  }
+
+  if (domainStatus !== 'verified') {
     return NextResponse.json(
-      {
-        error:
-          'Je verzenddomein is nog niet geverifieerd. Zodra dat rond is kun je versturen.',
-        domainStatus: tenant.domainStatus,
-      },
+      { error: domeinUitleg(tenant.sendingDomain, domainStatus), domainStatus },
       { status: 409 }
     )
   }
