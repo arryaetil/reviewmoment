@@ -13,6 +13,11 @@ export interface ExtractResult {
     invalid: number
   }
   /*
+   * Het openingsbericht, geschreven door het model en gecontroleerd op
+   * verzonnen aantallen. Valt terug op een vaste tekst als dat misgaat.
+   */
+  opener?: string
+  /*
    * Het oordeel van het model over het bestand als geheel. Bewust gescheiden
    * van de contacten: die zijn feitelijk, dit is een inschatting. Ontbreekt hij,
    * dan gaat de chat gewoon door zonder waarschuwing.

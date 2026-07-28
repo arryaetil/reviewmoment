@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ChatMessage, Contact, ExtractResult, RawRow, QueueResponse, JobStatus } from '@/lib/types'
 import { Button, Input, Spinner, cn } from '@/components/ui'
 import { useTypewriter, usePrefersReducedMotion } from '@/components/useTypewriter'
+import { deterministicOpener } from '@/lib/chat/opener'
 
 /**
  * Berichten worden als HTML weergegeven, dus alles gaat er eerst doorheen dat
@@ -37,57 +38,6 @@ interface Props {
 }
 
 type State = 'idle' | 'extracting' | 'awaiting_confirmation' | 'sending' | 'done'
-
-/**
- * Bouwt het openingsbericht na het uploaden.
- *
- * Drie dingen, in deze volgorde: wat er gevonden is, wat eventueel opvalt, en
- * wat er gebeurt als je bevestigt. Die laatste zin is er niet voor de sier —
- * iemand die op een knop drukt die honderden mails verstuurt hoort te weten
- * namens wie dat gaat en dat er niets meer tussen zit.
- */
-function buildOpener(data: ExtractResult): string {
-  const { valid, invalid } = data.summary
-  const regels: string[] = []
-
-  if (valid === 0) {
-    regels.push('Ik vind geen bruikbare e-mailadressen in dit bestand.')
-  } else {
-    regels.push(`Ik heb **${valid}** ${valid === 1 ? 'e-mailadres' : 'e-mailadressen'} uit je bestand gehaald.`)
-  }
-
-  if (invalid > 0) {
-    const redenen = new Map<string, number>()
-    for (const c of data.contacts.filter(c => !c.valid)) {
-      const label =
-        c.reason === 'duplicate' ? 'stond er dubbel in'
-        : c.reason === 'missing' ? 'had geen adres'
-        : 'had een ongeldig adres'
-      redenen.set(label, (redenen.get(label) ?? 0) + 1)
-    }
-    const uitleg = [...redenen].map(([label, n]) => `${n} ${label}`).join(', ')
-    regels.push(`${invalid} ${invalid === 1 ? 'rij is' : 'rijen zijn'} overgeslagen: ${uitleg}.`)
-  }
-
-  // Het oordeel van het model komt ná de feiten, zodat de cijfers niet
-  // ondersneeuwen bij een waarschuwing die achteraf loos blijkt.
-  if (data.assessment?.concern) {
-    regels.push(`⚠︎ ${data.assessment.concern}`)
-  }
-
-  if (valid > 0) {
-    regels.push(
-      `Als je bevestigt, krijgen die ${valid} mensen één e-mail namens jouw bedrijf, ` +
-      `met een link naar je Google-reviewpagina en onderaan een afmeldlink. ` +
-      `Er gaat verder niets uit en niemand krijgt een herinnering.`
-    )
-    regels.push('Zal ik ze versturen?')
-  } else {
-    regels.push('Upload een ander bestand om het opnieuw te proberen.')
-  }
-
-  return regels.join('\n\n')
-}
 
 export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([{
@@ -145,7 +95,9 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
       setPendingContacts(data.contacts)
       onContactsExtracted(data.contacts)
 
-      addMessage('assistant', buildOpener(data))
+      // Het model schrijft dit bericht; de server controleert het op verzonnen
+      // aantallen en levert anders de vaste tekst.
+      addMessage('assistant', data.opener || deterministicOpener(data))
       setChatState(data.summary.valid > 0 ? 'awaiting_confirmation' : 'idle')
     } catch { addMessage('assistant', 'Kon het bestand niet analyseren. Probeer opnieuw.'); setChatState('idle') }
     finally { extractingRef.current = false }
