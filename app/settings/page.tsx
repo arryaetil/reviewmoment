@@ -47,7 +47,9 @@ function Regel({ label, value, hint, hintTone, breed }: {
     <div className="grid gap-1 py-4 sm:grid-cols-[14rem_1fr] sm:gap-6 sm:py-3">
       <dt className="text-sm text-ink-muted">{label}</dt>
       <dd>
-        <span className={cn('text-base text-ink', breed && 'break-all')}>{value}</span>
+        {/* tabular-nums houdt de cijfers onder elkaar uitgelijnd; anders
+            danst "1.000" ten opzichte van "500". */}
+        <span className={cn('text-base tabular-nums text-ink', breed && 'break-all')}>{value}</span>
         {hint && <span className={cn('mt-1 block text-sm', hintTone)}>{hint}</span>}
       </dd>
     </div>

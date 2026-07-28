@@ -33,7 +33,7 @@ const Button = forwardRef<HTMLButtonElement, Props>(function Button(
     <button
       ref={ref}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-md font-medium',
+        'inline-flex touch-manipulation items-center justify-center gap-2 rounded-md font-medium',
         // Asymmetrisch: indrukken gaat sneller dan loslaten. Je vinger is er al
         // voordat het scherm reageert, dus de reactie moet je inhalen; het
         // terugveren mag je zien. Drie procent krimp is waar een knop aanvoelt

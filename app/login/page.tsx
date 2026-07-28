@@ -36,13 +36,12 @@ export default function LoginPage() {
     }
   }
 
-  const disabled = loading || !email || !password
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-canvas p-6">
       <div className="w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <img src="/logo.svg" alt="reviewmoment.nl" className="h-20 w-auto" />
+          <img src="/logo.svg" alt="reviewmoment.nl" width={320} height={178} className="h-20 w-auto" />
           <h1 className="mt-8 font-heading text-xl">Inloggen</h1>
           <p className="mt-2 text-base text-ink-muted">
             Log in om reviewverzoeken te versturen.
@@ -55,6 +54,11 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
+                name="email"
+                autoComplete="email"
+                // Een e-mailadres is geen woord; de rode kringel eronder
+                // suggereert een fout die er niet is.
+                spellCheck={false}
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="jouw@bedrijf.nl"
@@ -67,6 +71,8 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
+                name="password"
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 required
@@ -75,7 +81,10 @@ export default function LoginPage() {
 
             {error && <Notice tone="error">{error}</Notice>}
 
-            <Button type="submit" size="lg" disabled={disabled}>
+            {/* Bewust niet uitgeschakeld tot de velden gevuld zijn: een knop
+                die niets doet zonder te zeggen waarom is erger dan een knop die
+                een melding geeft. `required` doet dat werk. */}
+            <Button type="submit" size="lg" disabled={loading}>
               {loading && <Spinner />}
               Inloggen
             </Button>

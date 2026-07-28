@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { ReactNode, useEffect, useState } from 'react'
 import { cn } from '@/components/ui'
@@ -30,16 +31,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
     <div className="flex h-screen bg-canvas">
       <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface px-4 py-6">
         <div className="mb-8 px-2">
-          <img src="/logo-horizontal.svg" alt="reviewmoment.nl" className="h-7 w-auto" />
+          <img src="/logo-horizontal.svg" alt="reviewmoment.nl" width={384} height={78} className="h-7 w-auto" />
         </div>
 
         <nav className="flex flex-1 flex-col gap-1">
           {NAV_ITEMS.map(item => {
             const active = pathname === item.href
             return (
-              <button
+              <Link
                 key={item.href}
-                onClick={() => router.push(item.href)}
+                href={item.href}
                 aria-current={active ? 'page' : undefined}
                 className={cn(
                   'rounded-md border-l-2 px-3 py-2 text-left text-base transition-colors',
@@ -49,7 +50,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
                 )}
               >
                 {item.label}
-              </button>
+              </Link>
             )
           })}
         </nav>

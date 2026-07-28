@@ -215,7 +215,9 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
         voegde een doos toe binnen een doos en maakte het leeg gedeelte alleen
         zichtbaarder. Wat het samenhoudt is de leesbreedte, niet een lijn.
       */}
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      {/* Berichten komen na een handeling binnen, dus een schermlezer moet ze
+          krijgen zonder dat de focus verspringt. */}
+      <div className="flex flex-1 flex-col overflow-y-auto" aria-live="polite" aria-atomic="false">
         <div className="mx-auto mt-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
           {messages.map((m, i) => {
             const laatste = i === messages.length - 1
@@ -288,6 +290,11 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
           >
             <Input
               type="text"
+              name="vraag"
+              // Het label zit in de placeholder, en die verdwijnt zodra je
+              // typt — een schermlezer heeft daar niets aan.
+              aria-label="Stel een vraag over de lijst"
+              autoComplete="off"
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="Stel een vraag over de lijst…"
