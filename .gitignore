@@ -4,3 +4,7 @@ node_modules/
 .env*.local
 *.tsbuildinfo
 next-env.d.ts
+
+# Testbestand voor handmatig uploaden — hoort niet in de repo en al helemaal
+# niet in public/, waar het publiek opvraagbaar zou zijn.
+testbestand.csv

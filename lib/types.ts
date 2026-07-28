@@ -12,6 +12,15 @@ export interface ExtractResult {
     valid: number
     invalid: number
   }
+  /*
+   * Het oordeel van het model over het bestand als geheel. Bewust gescheiden
+   * van de contacten: die zijn feitelijk, dit is een inschatting. Ontbreekt hij,
+   * dan gaat de chat gewoon door zonder waarschuwing.
+   */
+  assessment?: {
+    looksLikeCustomerList: boolean
+    concern: string | null
+  }
 }
 
 /** Antwoord van /api/send: de opdracht is ingepland, nog niet verstuurd. */

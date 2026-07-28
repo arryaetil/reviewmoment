@@ -3,6 +3,33 @@
 import { useState, useEffect, useRef } from 'react'
 import { ChatMessage, Contact, ExtractResult, RawRow, QueueResponse, JobStatus } from '@/lib/types'
 import { Button, Input, Spinner, cn } from '@/components/ui'
+import { useTypewriter, usePrefersReducedMotion } from '@/components/useTypewriter'
+
+/**
+ * Berichten worden als HTML weergegeven, dus alles gaat er eerst doorheen dat
+ * het onschadelijk maakt. Pas daarná krijgt het opmaak — anders is een
+ * e-mailadres uit een geüpload bestand een manier om markup binnen te smokkelen.
+ */
+function format(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\n/g, '<br>')
+}
+
+function Typewriter({ text, onDone }: { text: string; onDone: () => void }) {
+  const reduced = usePrefersReducedMotion()
+  const { shown, done } = useTypewriter(reduced ? '' : text)
+  const visible = reduced ? text : shown
+
+  useEffect(() => {
+    if (reduced || done) onDone()
+  }, [reduced, done, onDone])
+
+  return <span dangerouslySetInnerHTML={{ __html: format(visible) }} />
+}
 
 interface Props {
   uploadTrigger: RawRow[] | null
@@ -10,6 +37,57 @@ interface Props {
 }
 
 type State = 'idle' | 'extracting' | 'awaiting_confirmation' | 'sending' | 'done'
+
+/**
+ * Bouwt het openingsbericht na het uploaden.
+ *
+ * Drie dingen, in deze volgorde: wat er gevonden is, wat eventueel opvalt, en
+ * wat er gebeurt als je bevestigt. Die laatste zin is er niet voor de sier —
+ * iemand die op een knop drukt die honderden mails verstuurt hoort te weten
+ * namens wie dat gaat en dat er niets meer tussen zit.
+ */
+function buildOpener(data: ExtractResult): string {
+  const { valid, invalid } = data.summary
+  const regels: string[] = []
+
+  if (valid === 0) {
+    regels.push('Ik vind geen bruikbare e-mailadressen in dit bestand.')
+  } else {
+    regels.push(`Ik heb **${valid}** ${valid === 1 ? 'e-mailadres' : 'e-mailadressen'} uit je bestand gehaald.`)
+  }
+
+  if (invalid > 0) {
+    const redenen = new Map<string, number>()
+    for (const c of data.contacts.filter(c => !c.valid)) {
+      const label =
+        c.reason === 'duplicate' ? 'stond er dubbel in'
+        : c.reason === 'missing' ? 'had geen adres'
+        : 'had een ongeldig adres'
+      redenen.set(label, (redenen.get(label) ?? 0) + 1)
+    }
+    const uitleg = [...redenen].map(([label, n]) => `${n} ${label}`).join(', ')
+    regels.push(`${invalid} ${invalid === 1 ? 'rij is' : 'rijen zijn'} overgeslagen: ${uitleg}.`)
+  }
+
+  // Het oordeel van het model komt ná de feiten, zodat de cijfers niet
+  // ondersneeuwen bij een waarschuwing die achteraf loos blijkt.
+  if (data.assessment?.concern) {
+    regels.push(`⚠︎ ${data.assessment.concern}`)
+  }
+
+  if (valid > 0) {
+    regels.push(
+      `Als je bevestigt, krijgen die ${valid} mensen één e-mail namens jouw bedrijf, ` +
+      `met een link naar je Google-reviewpagina en onderaan een afmeldlink. ` +
+      `Er gaat verder niets uit en niemand krijgt een herinnering.`
+    )
+    regels.push('Zal ik ze versturen?')
+  } else {
+    regels.push('Upload een ander bestand om het opnieuw te proberen.')
+  }
+
+  return regels.join('\n\n')
+}
 
 export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const [messages, setMessages] = useState<ChatMessage[]>([{
@@ -23,6 +101,8 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const extractingRef = useRef(false)
   const lastTriggerRef = useRef<RawRow[] | null>(null)
+  // Staat het laatste bericht er helemaal? Zo niet, dan zijn de knoppen weg.
+  const [settled, setSettled] = useState(true)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
@@ -35,6 +115,9 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   }, [uploadTrigger])
 
   function addMessage(role: 'user' | 'assistant', content: string) {
+    // Een bericht van de assistent wordt uitgetypt; eentje van de gebruiker
+    // staat er meteen, want die heeft hij zelf net geschreven.
+    setSettled(role === 'user')
     setMessages(prev => [...prev, { role, content, timestamp: new Date() }])
   }
 
@@ -49,24 +132,8 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
       setPendingContacts(data.contacts)
       onContactsExtracted(data.contacts)
 
-      const valid = data.contacts.filter(c => c.valid)
-      const invalid = data.summary.invalid
-      let msg = `Ik heb ${data.summary.valid} geldige e-mailadressen gevonden.`
-      if (invalid > 0) msg += ` ${invalid} ${invalid === 1 ? 'adres' : 'adressen'} overgeslagen (ongeldig).`
-
-      if (valid.length > 0) {
-        msg += '\n\nVoorbeeld van de e-mail die verstuurd wordt:'
-        msg += '\n────────────────────'
-        msg += `\nOnderwerp: Bedankt voor uw bezoek`
-        msg += `\n\nHallo ${valid[0].name || 'klant'},`
-        msg += '\nBedankt dat u voor ons heeft gekozen. Zou u een korte Google Review willen achterlaten?'
-        msg += '\n[Review achterlaten] (link)'
-        msg += '\n────────────────────'
-        msg += `\n\nWil je dat ik ${data.summary.valid} reviewverzoeken verstuur?`
-      }
-
-      addMessage('assistant', msg)
-      setChatState('awaiting_confirmation')
+      addMessage('assistant', buildOpener(data))
+      setChatState(data.summary.valid > 0 ? 'awaiting_confirmation' : 'idle')
     } catch { addMessage('assistant', 'Kon het bestand niet analyseren. Probeer opnieuw.'); setChatState('idle') }
     finally { extractingRef.current = false }
   }
@@ -166,26 +233,34 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
     addMessage('assistant', `Ik heb ${valid.length} geldige adressen klaarstaan. Wil je versturen? Typ "ja" of "nee".`)
   }
 
-  const renderContent = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
+  const renderContent = format
 
   const busy = chatState === 'extracting' || chatState === 'sending'
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card">
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
-        {messages.map((m, i) => (
-          <div key={i} className={cn('flex', m.role === 'user' && 'justify-end')}>
-            <div
-              className={cn(
-                'max-w-[80%] rounded-md px-4 py-3 text-base',
-                m.role === 'user'
-                  ? 'bg-navy text-surface'
-                  : 'border border-line bg-canvas text-ink',
-              )}
-              dangerouslySetInnerHTML={{ __html: renderContent(m.content) }}
-            />
-          </div>
-        ))}
+        {messages.map((m, i) => {
+          const laatste = i === messages.length - 1
+          return (
+            <div key={i} className={cn('flex', m.role === 'user' && 'justify-end')}>
+              <div
+                className={cn(
+                  'max-w-[80%] rounded-md px-4 py-3 text-base',
+                  m.role === 'user'
+                    ? 'bg-navy text-surface'
+                    : 'border border-line bg-canvas text-ink',
+                )}
+              >
+                {m.role === 'assistant' && laatste && !settled ? (
+                  <Typewriter text={m.content} onDone={() => setSettled(true)} />
+                ) : (
+                  <span dangerouslySetInnerHTML={{ __html: renderContent(m.content) }} />
+                )}
+              </div>
+            </div>
+          )
+        })}
 
         {busy && (
           <p className="flex items-center gap-2 text-sm text-ink-muted">
@@ -198,12 +273,18 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
       </div>
 
       {/* De bevestiging is de kern van het scherm, dus die staat vast onderin
-          en scrolt niet weg met het gesprek. */}
-      <div className="shrink-0 border-t border-line p-4">
+          en scrolt niet weg met het gesprek.
+
+          Knoppen en tekstvak verschijnen pas als het bericht is uitgetypt. Je
+          kunt niet bevestigen wat je nog niet hebt kunnen lezen — en juist de
+          waarschuwing over een verkeerd bestand staat in die tekst. */}
+      <div className={cn('shrink-0 border-t border-line p-4', !settled && 'opacity-0')}>
         {chatState === 'awaiting_confirmation' && (
           <div className="mb-4 flex gap-3">
-            <Button onClick={() => handleUserMessage('ja')}>Ja, versturen</Button>
-            <Button variant="secondary" onClick={() => handleUserMessage('nee')}>
+            <Button onClick={() => handleUserMessage('ja')} disabled={!settled}>
+              Ja, versturen
+            </Button>
+            <Button variant="secondary" onClick={() => handleUserMessage('nee')} disabled={!settled}>
               Nee, stoppen
             </Button>
           </div>
