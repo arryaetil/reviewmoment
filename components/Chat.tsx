@@ -103,6 +103,7 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const lastTriggerRef = useRef<RawRow[] | null>(null)
   // Staat het laatste bericht er helemaal? Zo niet, dan zijn de knoppen weg.
   const [settled, setSettled] = useState(true)
+  const [answering, setAnswering] = useState(false)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
 
@@ -124,6 +125,18 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   async function runExtract(rows: RawRow[]) {
     if (extractingRef.current) return
     extractingRef.current = true
+
+    /*
+     * Een nieuw bestand begint een nieuw gesprek.
+     *
+     * Eerder bleef alles staan: de oude berichten, de vorige contacten en de
+     * toestand van de afgeronde verzending. Wie na "upload een nieuw bestand"
+     * een bestand koos, zag zijn oude gesprek en een scherm dat niet reageerde.
+     * Erger nog: de knop stond dan onder een lijst die al verstuurd was.
+     */
+    setMessages([{ role: 'assistant', content: 'Ik lees je bestand en zoek de e-mailadressen op…', timestamp: new Date() }])
+    setPendingContacts([])
+    setSettled(true)
     setChatState('extracting')
     try {
       const res = await fetch('/api/extract', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rawData: rows }) })
@@ -136,6 +149,11 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
       setChatState(data.summary.valid > 0 ? 'awaiting_confirmation' : 'idle')
     } catch { addMessage('assistant', 'Kon het bestand niet analyseren. Probeer opnieuw.'); setChatState('idle') }
     finally { extractingRef.current = false }
+  }
+
+  function cancelSend() {
+    addMessage('assistant', 'Goed, ik verstuur niets. Je kunt nog vragen stellen over de lijst, of hierboven een ander bestand kiezen.')
+    setChatState('idle')
   }
 
   async function runSend() {
@@ -202,35 +220,36 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
     setChatState('done')
   }
 
-  function handleUserMessage(text: string) {
-    if (!text.trim()) return
-    addMessage('user', text); setInput('')
-    const lower = text.toLowerCase().trim()
-    if (chatState === 'awaiting_confirmation') {
-      if (['ja','yes','ok','oké','akkoord','verstuur','stuur','go','yep','jep','doen'].some(w => lower.includes(w))) { runSend(); return }
-      if (['nee','no','stop','annuleer','niet','cancel'].some(w => lower.includes(w))) { addMessage('assistant', 'Begrepen, ik stuur niets. Upload een nieuw bestand of typ je vraag.'); setChatState('idle'); return }
-      answerFreeQuestion(lower); return
-    }
-    if (chatState === 'done' || chatState === 'idle') addMessage('assistant', 'Upload een nieuw klantenbestand links om opnieuw te beginnen.')
-  }
+  /**
+   * Een getypt bericht is altijd een vraag, nooit een opdracht.
+   *
+   * Hiervoor werd de tekst op trefwoorden bekeken, met `includes()`. Daarmee
+   * zit "ok" in "ook" en "ja" in "jaar", dus "stuur hem ook naar Jan, maar niet
+   * naar Piet" startte de verzending — naar iedereen. Een zin waarin je een
+   * voorbehoud maakt hoort nooit honderden mails in gang te zetten. Bevestigen
+   * gaat daarom uitsluitend via de knop.
+   */
+  async function handleUserMessage(text: string) {
+    const question = text.trim()
+    if (!question || answering) return
 
-  function answerFreeQuestion(q: string) {
-    const valid = pendingContacts.filter(c => c.valid), invalid = pendingContacts.filter(c => !c.valid)
-    if (q.includes('ongeldig') || q.includes('fout') || q.includes('invalid')) {
-      if (invalid.length === 0) { addMessage('assistant', 'Er zijn geen ongeldige adressen.'); return }
-      addMessage('assistant', `Ongeldige adressen:\n${invalid.map(c => `- ${c.name || 'onbekend'} — ${c.email || 'geen e-mail'} (${c.reason})`).join('\n')}`); return
+    addMessage('user', question)
+    setInput('')
+    setAnswering(true)
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, contacts: pendingContacts }),
+      })
+      const data = await res.json()
+      addMessage('assistant', res.ok ? data.answer : (data.error || 'Daar kwam ik even niet uit. Probeer het opnieuw.'))
+    } catch {
+      addMessage('assistant', 'Verbindingsfout. Probeer het opnieuw.')
+    } finally {
+      setAnswering(false)
     }
-    if (q.includes('lijst') || q.includes('wie') || q.includes('welke')) {
-      if (valid.length === 0) { addMessage('assistant', 'Geen geldige adressen gevonden.'); return }
-      const preview = valid.slice(0, 10).map(c => `- ${c.name || '—'} · ${c.email}`).join('\n')
-      addMessage('assistant', `Geldige ontvangers:\n${preview}${valid.length > 10 ? `\n...en ${valid.length - 10} meer.` : ''}`); return
-    }
-    if (q.includes('voorbeeld') || q.includes('preview') || q.includes('email') || q.includes('mail')) {
-      const first = valid[0]
-      if (!first) { addMessage('assistant', 'Geen geldige contacten om een voorbeeld te tonen.'); return }
-      addMessage('assistant', `Voorbeeld e-mail:\n────────────────────\nOnderwerp: Bedankt voor uw bezoek\n\nHallo ${first.name || 'klant'},\nBedankt dat u voor ons heeft gekozen. Zou u een korte Google Review willen achterlaten?\n[Review achterlaten] (link)\n────────────────────`); return
-    }
-    addMessage('assistant', `Ik heb ${valid.length} geldige adressen klaarstaan. Wil je versturen? Typ "ja" of "nee".`)
   }
 
   const renderContent = format
@@ -281,10 +300,10 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
       <div className={cn('shrink-0 border-t border-line p-4', !settled && 'opacity-0')}>
         {chatState === 'awaiting_confirmation' && (
           <div className="mb-4 flex gap-3">
-            <Button onClick={() => handleUserMessage('ja')} disabled={!settled}>
+            <Button onClick={runSend} disabled={!settled}>
               Ja, versturen
             </Button>
-            <Button variant="secondary" onClick={() => handleUserMessage('nee')} disabled={!settled}>
+            <Button variant="secondary" onClick={cancelSend} disabled={!settled}>
               Nee, stoppen
             </Button>
           </div>
@@ -300,19 +319,20 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
             onChange={e => setInput(e.target.value)}
             placeholder={
               chatState === 'awaiting_confirmation' ? 'Stel een vraag over de lijst…'
-              : chatState === 'done' ? 'Upload een nieuw bestand om opnieuw te beginnen'
-              : 'Typ je antwoord…'
+              : chatState === 'done' ? 'Stel een vraag, of kies hierboven een nieuw bestand'
+              : 'Stel een vraag over de lijst…'
             }
-            disabled={busy}
+            disabled={busy || answering}
           />
-          {/* Neutraal: goud blijft gereserveerd voor de bevestiging hierboven. */}
+          {/* Heette "Verstuur", pal naast "Ja, versturen" — twee knoppen met
+              vrijwel dezelfde tekst waarvan er één mail de deur uit doet. */}
           <Button
             type="submit"
             variant="secondary"
-            disabled={!input.trim() || busy}
+            disabled={!input.trim() || busy || answering}
             className="shrink-0"
           >
-            Verstuur
+            Vraag
           </Button>
         </form>
       </div>

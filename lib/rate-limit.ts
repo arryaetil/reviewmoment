@@ -30,6 +30,9 @@ function makeLimiter(prefix: string, requests: number) {
 export const loginLimiter = makeLimiter('rl:login', 5)
 export const extractLimiter = makeLimiter('rl:extract', 20)
 export const sendLimiter = makeLimiter('rl:send', 10)
+// Ruimer dan extract: doorvragen hoort makkelijk te gaan, en een vraag kost
+// veel minder dan het analyseren van een heel bestand.
+export const chatLimiter = makeLimiter('rl:chat', 30)
 
 export async function consumeMonthlyQuota(
   tenantId: string,
