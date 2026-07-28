@@ -38,7 +38,13 @@ describe('e-mailtemplate', () => {
     const { html, text } = renderReviewRequest(base)
     const alles = `${html} ${text}`.toLowerCase()
 
-    for (const woord of ['positieve review', 'vijf sterren', '5 sterren', 'goede review']) {
+    for (const woord of [
+      'positieve review', 'vijf sterren', '5 sterren', 'goede review',
+      // Een vraag naar tevredenheid vóór het verzoek maakt dat verzoek
+      // voorwaardelijk. Er zit geen vertakking achter, maar het leest als
+      // selectief om positieve reviews vragen — en dat is wat Google verbiedt.
+      'bent u tevreden', 'was u tevreden', 'als u tevreden',
+    ]) {
       assert.ok(!alles.includes(woord), `template stuurt op de uitkomst: "${woord}"`)
     }
 
@@ -70,8 +76,8 @@ describe('e-mailtemplate', () => {
   test('werkt zonder naam', () => {
     const { html, text } = renderReviewRequest({ ...base, name: null })
 
-    assert.ok(html.includes('Hallo,'))
-    assert.ok(text.startsWith('Hallo,'))
+    assert.ok(html.includes('Beste klant,'))
+    assert.ok(text.startsWith('Beste klant,'))
     assert.ok(!html.includes('null'))
   })
 })

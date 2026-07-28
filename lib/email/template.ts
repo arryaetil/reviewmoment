@@ -23,10 +23,16 @@ export interface TemplateInput {
  *
  * De tekst vraagt ook niet om een pósitieve review — alleen om een review.
  * Dat is het verschil tussen vragen en sturen.
+ *
+ * Om dezelfde reden staat er geen vraag als "Bent u tevreden?" boven het
+ * verzoek. Iedereen krijgt dezelfde link, dus dat is geen review gating in
+ * technische zin — maar het maakt het verzoek voorwaardelijk aan tevredenheid,
+ * en dat is precies wat Google "selectief om positieve reviews vragen" noemt.
  */
 export function renderReviewRequest(input: TemplateInput): { subject: string; html: string; text: string } {
   const name = input.name?.trim() || null
-  const greeting = name ? `Hallo ${esc(name)},` : 'Hallo,'
+  // Zonder naam wordt "Beste," een halve zin; "Beste klant" leest als bedoeld.
+  const greeting = name ? `Beste ${esc(name)},` : 'Beste klant,'
   const biz = esc(input.businessName)
   const link = esc(input.reviewLink)
   const unsub = esc(input.unsubscribeUrl)
@@ -43,13 +49,14 @@ export function renderReviewRequest(input: TemplateInput): { subject: string; ht
         <tr><td>
           <p style="margin:0 0 16px">${greeting}</p>
           <p style="margin:0 0 16px">Bedankt dat u voor <strong>${biz}</strong> heeft gekozen.</p>
-          <p style="margin:0 0 16px">We horen graag hoe u het heeft ervaren. Een korte review op Google helpt ons om onze dienstverlening te verbeteren, en helpt anderen bij hun keuze.</p>
-          <p style="margin:0 0 28px">Uw eerlijke mening is waar we wat aan hebben — of die nu positief is of niet.</p>
+          <p style="margin:0 0 16px">We zouden het enorm waarderen als u uw ervaring wilt delen met een Google-review. Het kost minder dan een minuut en helpt zowel ons als toekomstige klanten.</p>
+          <p style="margin:0 0 28px">Uw eerlijke mening telt — of die nu positief is of niet.</p>
           <p style="margin:0 0 28px">
             <a href="${link}" style="display:inline-block;background:#1a44e8;color:#ffffff;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:600">Review achterlaten</a>
           </p>
+          <p style="margin:0 0 16px">Alvast hartelijk dank voor uw tijd!</p>
           <p style="margin:0 0 4px">Met vriendelijke groet,</p>
-          <p style="margin:0"><strong>${biz}</strong></p>
+          <p style="margin:0"><strong>Team ${biz}</strong></p>
           <hr style="border:none;border-top:1px solid #eaeaea;margin:32px 0 16px">
           <p style="margin:0;font-size:12px;color:#8a8a8a">
             U ontvangt dit bericht omdat u recent klant bent geweest bij ${biz}.
@@ -62,18 +69,20 @@ export function renderReviewRequest(input: TemplateInput): { subject: string; ht
 </body>
 </html>`
 
-  const text = `${name ? `Hallo ${name},` : 'Hallo,'}
+  const text = `${name ? `Beste ${name},` : 'Beste klant,'}
 
 Bedankt dat u voor ${input.businessName} heeft gekozen.
 
-We horen graag hoe u het heeft ervaren. Een korte review op Google helpt ons om
-onze dienstverlening te verbeteren, en helpt anderen bij hun keuze. Uw eerlijke
-mening is waar we wat aan hebben — of die nu positief is of niet.
+We zouden het enorm waarderen als u uw ervaring wilt delen met een Google-review.
+Het kost minder dan een minuut en helpt zowel ons als toekomstige klanten. Uw
+eerlijke mening telt — of die nu positief is of niet.
 
-Review achterlaten: ${input.reviewLink}
+👉 Review achterlaten: ${input.reviewLink}
+
+Alvast hartelijk dank voor uw tijd!
 
 Met vriendelijke groet,
-${input.businessName}
+Team ${input.businessName}
 
 ---
 U ontvangt dit bericht omdat u recent klant bent geweest bij ${input.businessName}.
