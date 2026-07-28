@@ -51,7 +51,7 @@ Verzendreputatie wordt per domein opgebouwd. Op één gedeeld domein trekt één
 klant met een verouderde lijst — veel bounces, misschien een spamklacht — alle
 andere klanten mee de spamfolder in. Elke tenant krijgt daarom
 `<klant>.<SENDING_ROOT_DOMAIN>`, automatisch aangemaakt bij onboarding via de
-Resend- en Cloudflare-API's. De klant hoeft zelf geen DNS te regelen.
+Resend- en TransIP-APIs. De klant hoeft zelf geen DNS te regelen.
 
 Het verzenddomein staat bewust los van het merkdomein (reviewmoment.nl), zodat
 reputatieschade nooit de eigen zakelijke mail raakt.
@@ -135,8 +135,11 @@ Daarna klanten aanmaken via `POST /api/admin/tenants` — zonder redeploy.
    wijst er als referentievariabele naar, zodat het wachtwoord nergens
    gekopieerd staat. Er is geen aparte pooler, dus `DIRECT_DATABASE_URL` is
    dezelfde verbinding.
-2. **Cloudflare** — zone voor `SENDING_ROOT_DOMAIN`, API-token met alleen
-   `Zone:DNS:Edit` op die ene zone.
+2. **TransIP** — sleutelpaar aanmaken onder "API" in het controlepaneel, als
+   *global key*. Zonder dat bindt TransIP het token aan het aanvragende IP, en
+   Railway heeft geen vast uitgaand IP. De DNS blijft bij de registrar staan;
+   Cloudflare zat in het oorspronkelijke ontwerp maar viel af omdat het
+   delegeren van alleen `send.<domein>` als losse zone daar Enterprise vereist.
 3. **Railway Redis + Upstash** — Redis draait privé in Railway; QStash levert de wachtrij en signing keys.
 4. **Resend** — API-key en een webhook naar `/api/webhooks/resend` voor
    `email.bounced` en `email.complained`.

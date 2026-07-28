@@ -32,8 +32,8 @@ function checkEnvVars() {
     'ANTHROPIC_API_KEY',
     'RESEND_API_KEY',
     'SENDING_ROOT_DOMAIN',
-    'CLOUDFLARE_API_TOKEN',
-    'CLOUDFLARE_ZONE_ID',
+    'TRANSIP_LOGIN',
+    'TRANSIP_PRIVATE_KEY',
     'REDIS_URL',
     'QSTASH_TOKEN',
     'QSTASH_CURRENT_SIGNING_KEY',
@@ -158,43 +158,22 @@ async function checkResend() {
   }
 }
 
-async function checkCloudflare() {
-  const token = env('CLOUDFLARE_API_TOKEN')
-  const zoneId = env('CLOUDFLARE_ZONE_ID')
+async function checkTransip() {
+  const login = env('TRANSIP_LOGIN')
+  const key = env('TRANSIP_PRIVATE_KEY')
   const root = env('SENDING_ROOT_DOMAIN')
-  if (!token || !zoneId) return record('Cloudflare', false, 'token of zone id ontbreekt')
+  if (!login || !key) return record('TransIP', false, 'login of privésleutel ontbreekt')
 
   try {
-    const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    const json = (await res.json()) as {
-      success: boolean
-      result?: { name: string; status: string }
-      errors?: { message: string }[]
-    }
+    // Echt de zone uitlezen, niet alleen inloggen: een geldig token zegt nog
+    // niets over of dit account het domein beheert waar we in willen schrijven.
+    const { registeredDomain, listZone } = await import('../lib/provisioning/transip')
+    const domain = registeredDomain(root || '', process.env.TRANSIP_DOMAIN)
+    const entries = await listZone(domain)
 
-    if (!json.success) {
-      return record('Cloudflare', false, json.errors?.map((e) => e.message).join('; ') || `HTTP ${res.status}`)
-    }
-
-    const zone = json.result!
-
-    // De zone moet het verzenddomein kunnen bevatten, anders schrijft de
-    // provisioning records weg in een zone die niets met je mail te maken heeft.
-    const covers = root ? root === zone.name || root.endsWith(`.${zone.name}`) : false
-
-    record(
-      'Cloudflare',
-      covers && zone.status === 'active',
-      !covers
-        ? `zone is ${zone.name}, maar SENDING_ROOT_DOMAIN is ${root} — die valt daar niet onder`
-        : zone.status !== 'active'
-          ? `zone ${zone.name} staat op "${zone.status}" — nameservers nog niet omgezet bij TransIP?`
-          : `zone ${zone.name} actief, dekt ${root}`
-    )
+    record('TransIP', true, `zone ${domain} leesbaar, ${entries.length} records`)
   } catch (err) {
-    record('Cloudflare', false, err instanceof Error ? err.message : 'onbereikbaar')
+    record('TransIP', false, err instanceof Error ? err.message : 'onbereikbaar')
   }
 }
 
@@ -222,7 +201,7 @@ async function main() {
     checkRedis(),
     checkQStash(),
     checkResend(),
-    checkCloudflare(),
+    checkTransip(),
     checkAnthropic(),
   ])
 

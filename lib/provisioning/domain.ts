@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { tenants } from '@/lib/db/schema'
-import { upsertRecords, type DnsRecord } from './cloudflare'
+import { upsertRecords, type DnsRecord } from './transip'
 
 const RESEND_API = 'https://api.resend.com'
 
@@ -94,7 +94,7 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
   }
 
   // Het id meteen vastleggen, vóórdat er iets kan misgaan bij de DNS-provider.
-  // Sloegen we het pas aan het eind op, dan laat elke Cloudflare-storing een
+  // Sloegen we het pas aan het eind op, dan laat elke DNS-storing een
   // klant achter met een domein dat bij Resend bestaat maar dat wij niet meer
   // kunnen volgen: refreshDomainStatus heeft dit id nodig.
   await db
@@ -102,7 +102,7 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
     .set({ resendDomainId: domain.id, updatedAt: new Date() })
     .where(eq(tenants.id, tenantId))
 
-  // 2. De door Resend gevraagde records via Cloudflare wegschrijven.
+  // 2. De door Resend gevraagde records in de DNS-zone wegschrijven.
   const records: DnsRecord[] = domain.records.map((r) => ({
     type: r.type,
     name: r.name,
