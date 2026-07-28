@@ -14,9 +14,9 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
  * Daarom heeft alleen `primary` die kleur; al het andere is neutraal.
  */
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-gold text-navy hover:bg-gold-hover disabled:bg-line disabled:text-ink-subtle',
-  secondary: 'border border-line-strong bg-surface text-ink hover:bg-canvas disabled:text-ink-subtle',
-  ghost: 'text-ink-muted hover:text-ink disabled:text-ink-subtle',
+  primary: 'bg-gold text-navy hover:bg-gold-hover disabled:bg-line disabled:text-ink-muted',
+  secondary: 'border border-line-strong bg-surface text-ink hover:bg-canvas disabled:text-ink-muted',
+  ghost: 'text-ink-muted hover:text-ink disabled:text-ink-muted',
 }
 
 const SIZES: Record<Size, string> = {

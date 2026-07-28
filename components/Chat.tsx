@@ -210,7 +210,11 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
 
   return (
     <div className="flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card">
+      {/* De berichten hangen aan de onderkant, tegen het invoerveld aan. Bij
+          een kort gesprek stonden ze bovenin met een leeg vlak eronder, en dan
+          staat het antwoord het verst weg van de plek waar je typt. */}
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <div className="mt-auto flex flex-col gap-4">
         {messages.map((m, i) => {
           const laatste = i === messages.length - 1
           return (
@@ -234,11 +238,12 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
         })}
 
         {busy && (
-          <p className="flex items-center gap-2 text-sm text-ink-muted">
+          <p className="flex animate-rise-in items-center gap-2 text-sm text-ink-muted">
             <Spinner />
             Bezig…
           </p>
         )}
+        </div>
 
         <div ref={bottomRef} />
       </div>

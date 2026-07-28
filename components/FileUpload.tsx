@@ -52,6 +52,14 @@ export default function FileUpload({ onDataParsed, compact }: Props) {
         return
       }
 
+      /*
+       * Een export eindigt vaak op een lege regel, en die telde mee als
+       * ontvanger zonder adres. Dan meldt het scherm "2 rijen zonder adres"
+       * terwijl er één persoon zonder adres in staat — een verschil dat de
+       * gebruiker niet kan verklaren en dat hem aan het twijfelen brengt.
+       */
+      rows = rows.filter(r => Object.values(r).some(v => String(v ?? '').trim() !== ''))
+
       if (rows.length > MAX_ROWS) {
         setError(`Bestand bevat meer dan ${MAX_ROWS} rijen. Splits het bestand op.`)
         setStatus('error')

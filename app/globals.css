@@ -20,8 +20,15 @@
   --color-border:       #E3E3DF;
   --color-border-strong:#CDCDC7;
   --color-text:         var(--color-navy);
-  --color-text-muted:   #6B7580;
-  --color-text-subtle:  #909AA3;
+  /*
+   * Gemeten, niet geschat. Op de canvas-achtergrond haalde #6B7580 precies
+   * 4.48:1 en #909AA3 maar 2.74:1 — allebei onder de eis van 4.5. Lichtgrijs
+   * "voor de rust" is de meest voorkomende reden dat een interface moeilijk
+   * leest. Deze twee halen 5.69 en 4.69, ook op wit en op een uitgeschakelde
+   * knop.
+   */
+  --color-text-muted:   #5A6570;
+  --color-text-subtle:  #67727E;
 
   /* Status — gedempt, nooit als vlak. */
   --color-danger:       #A33A2E;
