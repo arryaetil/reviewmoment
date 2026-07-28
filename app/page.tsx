@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
 import FileUpload from '@/components/FileUpload'
 import Chat from '@/components/Chat'
-import { Card, Spinner } from '@/components/ui'
+import { Card, Spinner, cn } from '@/components/ui'
 import { RawRow } from '@/lib/types'
 import { domeinUitleg, magVersturen } from '@/lib/domain-status'
 
@@ -64,25 +64,30 @@ export default function Home() {
   return (
     <AppShell>
       <div className="flex flex-1 flex-col overflow-hidden">
-        {hasUpload ? (
-          /* Na het uploaden krimpt het bestand tot één regel in de kop. Het
-             had een eigen kaart boven het gesprek, en dat waren twee dozen
-             boven elkaar voor één zin tekst. */
-          <header className="shrink-0 border-b border-line bg-canvas">
-            <div className="mx-auto w-full max-w-2xl px-6 py-4">
-              <FileUpload
-                onDataParsed={(rows: RawRow[]) => setUploadTrigger(rows)}
-                compact
-              />
-            </div>
-          </header>
-        ) : (
-          <div className="flex flex-1 items-center justify-center px-6 py-12">
-            <div className="w-full max-w-lg animate-rise-in">
-              <FileUpload onDataParsed={(rows: RawRow[]) => setUploadTrigger(rows)} />
-            </div>
+        {/*
+          Eén FileUpload, alleen een andere omhulling. Stond hij in twee takken
+          van een ternary, dan ziet React dat als een ander element: het oude
+          wordt weggegooid en het nieuwe begint zonder bestandsnaam, waardoor de
+          kop het volledige uploadveld liet zien terwijl er al een bestand lag.
+        */}
+        <div
+          className={cn(
+            hasUpload
+              ? 'shrink-0 border-b border-line'
+              : 'flex flex-1 items-center justify-center px-6 py-12',
+          )}
+        >
+          <div
+            className={cn(
+              hasUpload ? 'mx-auto w-full max-w-2xl px-6 py-4' : 'w-full max-w-lg animate-rise-in',
+            )}
+          >
+            <FileUpload
+              onDataParsed={(rows: RawRow[]) => setUploadTrigger(rows)}
+              compact={hasUpload}
+            />
           </div>
-        )}
+        </div>
 
         {hasUpload && (
           <div className="flex-1 overflow-hidden">
