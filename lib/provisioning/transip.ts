@@ -37,17 +37,25 @@ export function registeredDomain(sendingRoot: string, override?: string): string
  * TransIP wil namen relatief aan de zone, precies zoals het controlepaneel:
  * `resend._domainkey.kvik.send.reviewmoment.nl` wordt `resend._domainkey.kvik.send`.
  *
- * Dit is de gevaarlijkste omzetting in het bestand. Gaat hij mis, dan belandt
- * een record op de root van de zone — daar staan de MX en SPF van de eigen
- * zakelijke mail, dus dan sloop je iets wat niets met verzenden te maken heeft.
+ * De invoer komt in twee vormen binnen. Resend levert namen al relatief aan het
+ * geregistreerde domein (`resend._domainkey.kvik.send`), terwijl het DMARC-record
+ * dat we er zelf bijzetten volledig is. Beide worden hier geaccepteerd.
+ *
+ * `mustBeUnder` is de vangrail en is niet optioneel bedoeld: elk record hoort
+ * binnen het verzendsubdomein van één klant te vallen. Zonder die controle kan
+ * een verkeerd samengestelde naam op de root van de zone belanden — daar staan
+ * de MX en SPF van de eigen zakelijke mail.
  */
-export function toRelativeName(fqdn: string, domain: string): string {
-  const name = fqdn.replace(/\.$/, '')
-  if (name === domain) return '@'
-  if (!name.endsWith(`.${domain}`)) {
-    throw new Error(`Record "${name}" valt niet binnen de zone "${domain}"`)
+export function toZoneName(name: string, zone: string, mustBeUnder: string): string {
+  const raw = name.replace(/\.$/, '')
+  const absolute = raw === zone || raw.endsWith(`.${zone}`) ? raw : `${raw}.${zone}`
+
+  if (absolute !== mustBeUnder && !absolute.endsWith(`.${mustBeUnder}`)) {
+    throw new Error(`Record "${raw}" valt buiten "${mustBeUnder}"`)
   }
-  return name.slice(0, -(domain.length + 1))
+
+  if (absolute === zone) return '@'
+  return absolute.slice(0, -(zone.length + 1))
 }
 
 /** MX draagt zijn prioriteit in het inhoudsveld: "10 host.example.com". */
@@ -147,9 +155,9 @@ export async function listZone(domain: string): Promise<TransipEntry[]> {
  * raken we niet aan, want daarmee vaag je bij één fout de MX en SPF van de
  * zakelijke mail weg.
  */
-export async function upsertRecord(record: DnsRecord): Promise<void> {
+export async function upsertRecord(record: DnsRecord, mustBeUnder: string): Promise<void> {
   const domain = zone()
-  const name = toRelativeName(record.name, domain)
+  const name = toZoneName(record.name, domain, mustBeUnder)
   const content = toContent(record)
   const expire = record.ttl ?? 3600
 
@@ -170,11 +178,11 @@ export async function upsertRecord(record: DnsRecord): Promise<void> {
   })
 }
 
-export async function upsertRecords(records: DnsRecord[]): Promise<void> {
+export async function upsertRecords(records: DnsRecord[], mustBeUnder: string): Promise<void> {
   // Serieel: de zone wordt per aanroep opnieuw gelezen, dus parallel schrijven
   // laat de een de wijziging van de ander overschrijven.
   for (const record of records) {
-    await upsertRecord(record)
+    await upsertRecord(record, mustBeUnder)
   }
 }
 
@@ -184,7 +192,8 @@ export async function deleteRecordsForSubdomain(
   rootDomain: string
 ): Promise<void> {
   const domain = zone()
-  const suffix = toRelativeName(`${subdomain}.${rootDomain}`, domain)
+  const under = `${subdomain}.${rootDomain}`
+  const suffix = toZoneName(under, domain, under)
 
   for (const entry of await listZone(domain)) {
     if (entry.name === suffix || entry.name.endsWith(`.${suffix}`)) {

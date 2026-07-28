@@ -121,7 +121,7 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
     ttl: 3600,
   })
 
-  await upsertRecords(records)
+  await upsertRecords(records, sendingDomain)
 
   // 3. Verificatie starten. Propagatie duurt even, dus de status blijft
   //    voorlopig 'verifying'; een cron controleert later opnieuw.

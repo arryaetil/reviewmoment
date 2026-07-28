@@ -1,6 +1,9 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { registeredDomain, toRelativeName, toContent } from '../lib/provisioning/transip'
+import { registeredDomain, toZoneName, toContent } from '../lib/provisioning/transip'
+
+const ZONE = 'reviewmoment.nl'
+const KLANT = 'kvik.send.reviewmoment.nl'
 
 describe('TransIP-zone bepalen', () => {
   test('neemt de laatste twee labels van het verzenddomein', () => {
@@ -12,46 +15,47 @@ describe('TransIP-zone bepalen', () => {
   })
 })
 
-describe('namen relatief maken', () => {
-  test('haalt de zone van het einde af', () => {
-    assert.equal(
-      toRelativeName('resend._domainkey.kvik.send.reviewmoment.nl', 'reviewmoment.nl'),
-      'resend._domainkey.kvik.send'
-    )
+describe('namen omzetten naar zonenotatie', () => {
+  /*
+   * Resend levert namen al zonder het geregistreerde domein erachter. Dat is
+   * niet vanzelfsprekend en het kostte een mislukte provisioning om te
+   * ontdekken, dus het staat hier vast.
+   */
+  test('een naam van Resend is al relatief en blijft ongemoeid', () => {
+    assert.equal(toZoneName('resend._domainkey.kvik.send', ZONE, KLANT), 'resend._domainkey.kvik.send')
   })
 
-  test('MX-hostnaam onder het verzendsubdomein', () => {
-    assert.equal(
-      toRelativeName('send.kvik.send.reviewmoment.nl', 'reviewmoment.nl'),
-      'send.kvik.send'
-    )
+  test('het DMARC-record dat we zelf toevoegen is volledig en wordt ingekort', () => {
+    assert.equal(toZoneName('_dmarc.kvik.send.reviewmoment.nl', ZONE, KLANT), '_dmarc.kvik.send')
+  })
+
+  test('het verzenddomein zelf', () => {
+    assert.equal(toZoneName('kvik.send.reviewmoment.nl', ZONE, KLANT), 'kvik.send')
   })
 
   test('een afsluitende punt hoort er niet toe te doen', () => {
-    assert.equal(toRelativeName('a.b.reviewmoment.nl.', 'reviewmoment.nl'), 'a.b')
-  })
-
-  test('de zone zelf wordt @', () => {
-    assert.equal(toRelativeName('reviewmoment.nl', 'reviewmoment.nl'), '@')
+    assert.equal(toZoneName('send.kvik.send.reviewmoment.nl.', ZONE, KLANT), 'send.kvik.send')
   })
 
   /*
-   * Dit is de test waar het om gaat. Zonder deze controle zou een record uit
-   * een vreemde zone stilzwijgend als losse naam worden weggeschreven, en dan
-   * belandt hij naast de MX en SPF van de eigen zakelijke mail.
+   * De vangrail. Elk record moet binnen het subdomein van díé klant vallen —
+   * niet alleen binnen de zone. Anders kan een verkeerd samengestelde naam op
+   * de root belanden, waar de MX en SPF van de eigen zakelijke mail staan.
    */
-  test('weigert een naam die buiten de zone valt', () => {
-    assert.throws(
-      () => toRelativeName('kvik.send.andersdomein.nl', 'reviewmoment.nl'),
-      /valt niet binnen de zone/
-    )
+  test('weigert de root van de zone', () => {
+    assert.throws(() => toZoneName('reviewmoment.nl', ZONE, KLANT), /valt buiten/)
   })
 
-  test('trapt niet in een domein dat er alleen op lijkt', () => {
-    assert.throws(
-      () => toRelativeName('kwaadaardig-reviewmoment.nl', 'reviewmoment.nl'),
-      /valt niet binnen de zone/
-    )
+  test('weigert een record van een andere klant', () => {
+    assert.throws(() => toZoneName('_dmarc.andere.send', ZONE, KLANT), /valt buiten/)
+  })
+
+  test('weigert een naam uit een vreemde zone', () => {
+    assert.throws(() => toZoneName('kvik.send.andersdomein.nl', ZONE, KLANT), /valt buiten/)
+  })
+
+  test('trapt niet in een subdomein dat er alleen op lijkt', () => {
+    assert.throws(() => toZoneName('nep-kvik.send.reviewmoment.nl', ZONE, KLANT), /valt buiten/)
   })
 })
 
