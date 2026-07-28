@@ -60,8 +60,24 @@
   --shadow-card:  0 1px 2px rgba(30, 50, 67, 0.06);
   --shadow-focus: 0 0 0 3px rgba(210, 160, 59, 0.30);
 
-  /* Beweging — alleen functioneel. */
-  --transition: 150ms ease;
+  /*
+   * Beweging — alleen functioneel.
+   *
+   * Drie snelheden, drie curves. Alles versnelt aan het begin en remt lang uit:
+   * dat leest als iets dat tot stilstand komt, niet als iets dat wordt
+   * afgespeeld. Geen bounce en geen elastic — die vragen aandacht, en op het
+   * scherm waar iemand honderden mails verstuurt is aandacht vragen het
+   * laatste wat je wil.
+   */
+  --duration-fast: 120ms;   /* kleur, rand — moet direct aanvoelen */
+  --duration-base: 200ms;   /* iets verschijnt of verdwijnt */
+  --duration-slow: 320ms;   /* de indeling verandert */
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo, standaard */
+  --ease-out-soft: cubic-bezier(0.25, 1, 0.5, 1);   /* quart, korte afstanden */
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);    /* heen en weer */
+
+  --transition: var(--duration-fast) var(--ease-out-soft);
 }
 
 @layer base {
@@ -83,5 +99,54 @@
     outline: none;
     box-shadow: var(--shadow-focus);
     border-color: var(--color-gold);
+  }
+
+  /* Koppen mogen niet één losse staart houden op de laatste regel. */
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  /*
+   * De serif is een displayletter en staat standaard te ruim op deze groottes.
+   * Iets aantrekken laat een titel als één woordbeeld lezen in plaats van als
+   * losse letters.
+   */
+  .font-heading {
+    letter-spacing: -0.015em;
+  }
+}
+
+@layer utilities {
+  /*
+   * Iets dat verschijnt komt van vlak onder zijn plek omhoog. Vier pixels,
+   * meer niet: genoeg om te zien dat het nieuw is, te weinig om af te leiden.
+   */
+  @keyframes rise-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .animate-rise-in {
+    animation: rise-in var(--duration-base) var(--ease-out) both;
+  }
+}
+
+/*
+ * Wie minder beweging heeft ingesteld, krijgt geen beweging. Niet een snellere
+ * versie — geen. Behalve de spinner, want die is de enige manier waarop het
+ * scherm laat zien dat er nog iets gebeurt.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *:not(.animate-spin)::before,
+  *:not(.animate-spin)::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

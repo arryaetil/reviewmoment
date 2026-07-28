@@ -214,7 +214,7 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
         {messages.map((m, i) => {
           const laatste = i === messages.length - 1
           return (
-            <div key={i} className={cn('flex', m.role === 'user' && 'justify-end')}>
+            <div key={i} className={cn('flex animate-rise-in', m.role === 'user' && 'justify-end')}>
               <div
                 className={cn(
                   'max-w-[80%] rounded-md px-4 py-3 text-base',
@@ -249,9 +249,14 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
           Knoppen en tekstvak verschijnen pas als het bericht is uitgetypt. Je
           kunt niet bevestigen wat je nog niet hebt kunnen lezen — en juist de
           waarschuwing over een verkeerd bestand staat in die tekst. */}
-      <div className={cn('shrink-0 border-t border-line p-4', !settled && 'opacity-0')}>
+      <div
+        className={cn(
+          'shrink-0 border-t border-line p-4 transition-opacity duration-base ease-out',
+          settled ? 'opacity-100' : 'pointer-events-none opacity-0',
+        )}
+      >
         {chatState === 'awaiting_confirmation' && (
-          <div className="mb-4 flex gap-3">
+          <div className="mb-4 flex animate-rise-in gap-3">
             <Button onClick={runSend} disabled={!settled}>
               Ja, versturen
             </Button>

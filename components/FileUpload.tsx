@@ -117,12 +117,19 @@ export default function FileUpload({ onDataParsed, compact }: Props) {
         onDragLeave={() => setIsDragging(false)}
         onDrop={onDrop}
         className={cn(
-          'w-full rounded-lg border border-dashed px-6 py-12 text-center transition-colors',
-          isDragging ? 'border-gold bg-canvas' : 'border-line-strong bg-surface hover:bg-canvas',
+          'w-full rounded-lg border border-dashed px-6 py-12 text-center',
+          'transition-[background-color,border-color,transform] duration-base ease-out',
+          // Bij het slepen zet het vlak zich een fractie uit. Dat is de enige
+          // bevestiging die iemand krijgt dat hij boven het juiste doel hangt;
+          // een kleurverschil alleen is met een bestand onder je cursor te
+          // makkelijk te missen.
+          isDragging
+            ? 'scale-[1.01] border-gold bg-canvas'
+            : 'border-line-strong bg-surface hover:border-line-strong hover:bg-canvas',
         )}
       >
         <span className="block text-base font-medium text-ink">
-          Sleep je bestand hierheen of klik om te bladeren
+          {isDragging ? 'Laat los om te uploaden' : 'Sleep je bestand hierheen of klik om te bladeren'}
         </span>
         <span className="mt-2 block text-sm text-ink-muted">
           CSV, XLSX, XLS of TXT &middot; maximaal {MAX_FILE_SIZE_MB} MB en {MAX_ROWS} rijen

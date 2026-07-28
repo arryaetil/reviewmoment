@@ -34,7 +34,11 @@ const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-md font-medium',
-        'transition-colors disabled:cursor-not-allowed',
+        // Kleur schakelt direct, de indruk bij het indrukken volgt een fractie
+        // later. Dat halve procent krimp is wat een knop laat aanvoelen als
+        // iets dat je indrukt in plaats van iets dat van kleur verandert.
+        'transition-[color,background-color,border-color,transform] duration-fast ease-out-soft',
+        'active:scale-[0.985] disabled:cursor-not-allowed disabled:active:scale-100',
         VARIANTS[variant],
         SIZES[size],
         className,

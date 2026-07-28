@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { Card, cn } from '@/components/ui'
+import { cn } from '@/components/ui'
 
 interface UserInfo {
   email: string
@@ -29,17 +29,37 @@ const DOMAIN_TONE: Record<UserInfo['domainStatus'], string> = {
   failed: 'text-danger',
 }
 
-function Row({ label, value, last, className }: {
+/**
+ * Eén regel: wat het is, en wat het bij jou is.
+ *
+ * Geen kaders om elke groep. Vier kaarten onder elkaar met dezelfde vorm zeggen
+ * niets over de inhoud; de tussenruimte doet dat werk beter en laat de pagina
+ * ademen.
+ */
+function Regel({ label, value, hint, hintTone, breed }: {
   label: string
   value: string
-  last?: boolean
-  className?: string
+  hint?: string
+  hintTone?: string
+  breed?: boolean
 }) {
   return (
-    <div className={cn('py-3', !last && 'border-b border-line')}>
-      <p className="text-sm text-ink-muted">{label}</p>
-      <p className={cn('mt-1 text-base text-ink', className)}>{value}</p>
+    <div className="grid gap-1 py-4 sm:grid-cols-[14rem_1fr] sm:gap-6 sm:py-3">
+      <dt className="text-sm text-ink-muted">{label}</dt>
+      <dd>
+        <span className={cn('text-base text-ink', breed && 'break-all')}>{value}</span>
+        {hint && <span className={cn('mt-1 block text-sm', hintTone)}>{hint}</span>}
+      </dd>
     </div>
+  )
+}
+
+function Sectie({ titel, children }: { titel: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t border-line pt-6">
+      <h2 className="text-base font-medium text-ink">{titel}</h2>
+      <dl className="mt-2 divide-y divide-line">{children}</dl>
+    </section>
   )
 }
 
@@ -56,60 +76,40 @@ export default function SettingsPage() {
 
   return (
     <AppShell>
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-xl">
-          <h1 className="font-heading text-xl">Instellingen</h1>
-          <p className="mt-2 text-base text-ink-muted">
-            Beheer je account en bedrijfsinstellingen.
-          </p>
+      <div className="flex-1 overflow-y-auto px-8 py-12">
+        <div className="mx-auto max-w-2xl">
+          <header className="mb-12">
+            <h1 className="font-heading text-xl">Instellingen</h1>
+            <p className="mt-3 text-base text-ink-muted">
+              Zo staat je account ingesteld. Neem contact op als er iets moet veranderen.
+            </p>
+          </header>
 
-          <div className="mt-8 flex flex-col gap-6">
-            <Card>
-              <h2 className="text-base font-medium text-ink">Account</h2>
-              <div className="mt-2">
-                <Row label="E-mailadres" value={v(user?.email)} />
-                <Row label="Bedrijfsnaam" value={v(user?.businessName)} last />
-              </div>
-            </Card>
+          <div className="flex flex-col gap-12">
+            <Sectie titel="Account">
+              <Regel label="E-mailadres" value={v(user?.email)} />
+              <Regel label="Bedrijfsnaam" value={v(user?.businessName)} />
+            </Sectie>
 
-            <Card>
-              <h2 className="text-base font-medium text-ink">E-mailinstellingen</h2>
-              <div className="mt-2">
-                <Row label="Afzendernaam" value={v(user?.fromName)} />
-                <div className="border-b border-line py-3">
-                  <p className="text-sm text-ink-muted">Afzenderdomein</p>
-                  <p className="mt-1 text-base text-ink">{v(user?.sendingDomain)}</p>
-                  {user?.domainStatus && (
-                    <p className={cn('mt-1 text-sm', DOMAIN_TONE[user.domainStatus])}>
-                      {DOMAIN_LABEL[user.domainStatus]}
-                    </p>
-                  )}
-                </div>
-                <Row label="Reply-to adres" value={v(user?.replyTo)} last />
-              </div>
-            </Card>
+            <Sectie titel="Wat je klanten zien">
+              <Regel label="Afzendernaam" value={v(user?.fromName)} />
+              <Regel
+                label="Verzenddomein"
+                value={v(user?.sendingDomain)}
+                hint={user?.domainStatus && DOMAIN_LABEL[user.domainStatus]}
+                hintTone={user?.domainStatus && DOMAIN_TONE[user.domainStatus]}
+                breed
+              />
+              <Regel label="Antwoorden gaan naar" value={v(user?.replyTo)} />
+              <Regel label="Reviewlink" value={v(user?.googleReviewLink)} breed />
+            </Sectie>
 
-            <Card>
-              <h2 className="text-base font-medium text-ink">Google Review</h2>
-              <div className="mt-2">
-                <Row
-                  label="Reviewlink"
-                  value={v(user?.googleReviewLink)}
-                  className="break-all"
-                  last
-                />
-              </div>
-            </Card>
-
-            <Card>
-              <h2 className="text-base font-medium text-ink">Limieten</h2>
-              <div className="mt-2">
-                <Row label="Max. bestandsgrootte" value="5 MB" />
-                <Row label="Max. rijen per bestand" value="1.000" />
-                <Row label="Max. e-mails per batch" value="500" />
-                <Row label="Sessieduur" value="24 uur" last />
-              </div>
-            </Card>
+            <Sectie titel="Limieten">
+              <Regel label="Max. bestandsgrootte" value="5 MB" />
+              <Regel label="Max. rijen per bestand" value="1.000" />
+              <Regel label="Max. e-mails per batch" value="500" />
+              <Regel label="Sessieduur" value="24 uur" />
+            </Sectie>
           </div>
         </div>
       </div>

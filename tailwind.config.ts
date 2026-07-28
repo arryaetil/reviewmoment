@@ -68,7 +68,16 @@ const config: Config = {
         focus: 'var(--shadow-focus)',
       },
       transitionDuration: {
-        DEFAULT: '150ms',
+        DEFAULT: 'var(--duration-fast)',
+        fast: 'var(--duration-fast)',
+        base: 'var(--duration-base)',
+        slow: 'var(--duration-slow)',
+      },
+      transitionTimingFunction: {
+        DEFAULT: 'var(--ease-out-soft)',
+        out: 'var(--ease-out)',
+        'out-soft': 'var(--ease-out-soft)',
+        'in-out': 'var(--ease-in-out)',
       },
       keyframes: {
         spin: { to: { transform: 'rotate(360deg)' } },
