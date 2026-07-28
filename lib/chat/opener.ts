@@ -69,13 +69,33 @@ export function openerIsBetrouwbaar(tekst: string, data: ExtractResult): boolean
 
   const toegestaan = new Set<number>([total, valid, invalid, ...redenTelling(data).values()])
 
-  const getallen = (tekst.match(/\d+/g) ?? []).map(Number)
+  /*
+   * Alleen getallen die iets tellen worden gecontroleerd, herkenbaar aan het
+   * zelfstandig naamwoord erachter: "3 adressen", "4 rijen", "2 mensen".
+   *
+   * Een eerdere versie keurde élk getal af dat geen bestaande telling was, en
+   * verwierp daarmee ook "in rij 5 staat (at) in plaats van @" — precies de
+   * nuttigste zin die het model schreef. Een rijnummer telt niets; een verkeerd
+   * aantal ontvangers wel, en dat is het enige waar het hier om gaat.
+   */
+  const telwoorden = new RegExp(
+    String.raw`(\d+)\s+(?:\w+\s+){0,2}?(` +
+      // wie of wat er geteld wordt
+      String.raw`adres|adressen|e-?mailadres|e-?mailadressen|rij|rijen|mens|mensen|` +
+      String.raw`ontvanger|ontvangers|klant|klanten|mail|mails|e-?mail|e-?mails|` +
+      // of waarom iets is afgevallen
+      String.raw`dubbel|dubbele|duplicaat|duplicaten|leeg|lege|ongeldig|ongeldige` +
+      String.raw`)\b`,
+    'gi'
+  )
 
-  for (const n of getallen) {
-    if (n <= total && !toegestaan.has(n)) return false
+  for (const m of tekst.matchAll(telwoorden)) {
+    if (!toegestaan.has(Number(m[1]))) return false
   }
 
-  if (valid > 0 && !getallen.includes(valid)) return false
+  // Het aantal bruikbare adressen moet er gewoon staan; daar baseert iemand
+  // zijn beslissing op.
+  if (valid > 0 && !(tekst.match(/\d+/g) ?? []).map(Number).includes(valid)) return false
 
   return true
 }

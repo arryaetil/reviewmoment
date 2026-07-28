@@ -54,6 +54,20 @@ describe('openingsbericht controleren', () => {
     assert.equal(openerIsBetrouwbaar(tekst, data), true)
   })
 
+  /*
+   * Dit is de zin die het model in de praktijk schreef en die door een te
+   * strenge eerdere versie werd afgekeurd. Een rijnummer telt niets, dus het
+   * hoort geen bestaande telling te hoeven zijn.
+   */
+  test('staat een verwijzing naar een rijnummer toe', () => {
+    const tekst = "Ik heb 3 adressen gevonden. In rij 5 staat '(at)' in plaats van '@'."
+    assert.equal(openerIsBetrouwbaar(tekst, data), true)
+  })
+
+  test('weigert nog steeds een verkeerd aantal ontvangers', () => {
+    assert.equal(openerIsBetrouwbaar('Ik heb 3 adressen. Er krijgen 5 mensen een mail.', data), false)
+  })
+
   test('bij nul bruikbare adressen hoeft er geen aantal in te staan', () => {
     const leeg: ExtractResult = {
       contacts: [{ name: '', email: '', valid: false, reason: 'missing' }],
