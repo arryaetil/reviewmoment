@@ -76,13 +76,14 @@
    * scherm waar iemand honderden mails verstuurt is aandacht vragen het
    * laatste wat je wil.
    */
-  --duration-fast: 120ms;   /* kleur, rand — moet direct aanvoelen */
+  --duration-press: 100ms;  /* indrukken — moet vóór je vinger zijn */
+  --duration-fast: 160ms;   /* loslaten, kleur, rand */
   --duration-base: 200ms;   /* iets verschijnt of verdwijnt */
-  --duration-slow: 320ms;   /* de indeling verandert */
+  --duration-slow: 300ms;   /* de indeling verandert; hierboven wordt het traag */
 
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);        /* expo, standaard */
-  --ease-out-soft: cubic-bezier(0.25, 1, 0.5, 1);   /* quart, korte afstanden */
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);    /* heen en weer */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);       /* standaard voor interactie */
+  --ease-out-soft: cubic-bezier(0.25, 1, 0.5, 1);   /* korte afstanden */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);   /* beweging binnen het scherm */
 
   --transition: var(--duration-fast) var(--ease-out-soft);
 }
@@ -137,23 +138,41 @@
     to   { opacity: 1; transform: none; }
   }
 
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
   .animate-rise-in {
     animation: rise-in var(--duration-base) var(--ease-out) both;
   }
 }
 
 /*
- * Wie minder beweging heeft ingesteld, krijgt geen beweging. Niet een snellere
- * versie — geen. Behalve de spinner, want die is de enige manier waarop het
- * scherm laat zien dat er nog iets gebeurt.
+ * Minder beweging betekent geen verplaatsing, niet niets.
+ *
+ * Alles wegstrippen laat een interface schokkerig aanvoelen: dingen springen
+ * dan van de ene toestand in de andere. Wat blijft is een korte overvloeiing,
+ * zodat een verandering nog steeds te volgen is zonder dat er iets beweegt.
  */
 @media (prefers-reduced-motion: reduce) {
-  *:not(.animate-spin),
-  *:not(.animate-spin)::before,
-  *:not(.animate-spin)::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  *,
+  *::before,
+  *::after {
+    transition-duration: var(--duration-press) !important;
+    transition-property: opacity, color, background-color, border-color !important;
+    animation-duration: var(--duration-press) !important;
     scroll-behavior: auto !important;
+  }
+
+  .animate-rise-in {
+    animation-name: fade-in !important;
+  }
+
+  /* De spinner blijft draaien: dat is de enige manier waarop het scherm laat
+     zien dat er nog iets gebeurt. */
+  .animate-spin {
+    animation: spin 700ms linear infinite !important;
+    transition-property: none !important;
   }
 }

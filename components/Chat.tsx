@@ -209,94 +209,100 @@ export default function Chat({ uploadTrigger, onContactsExtracted }: Props) {
   const busy = chatState === 'extracting' || chatState === 'sending'
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-line bg-surface shadow-card">
-      {/* De berichten hangen aan de onderkant, tegen het invoerveld aan. Bij
-          een kort gesprek stonden ze bovenin met een leeg vlak eronder, en dan
-          staat het antwoord het verst weg van de plek waar je typt. */}
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
-        <div className="mt-auto flex flex-col gap-4">
-        {messages.map((m, i) => {
-          const laatste = i === messages.length - 1
-          return (
-            <div key={i} className={cn('flex animate-rise-in', m.role === 'user' && 'justify-end')}>
+    <div className="flex h-full flex-col overflow-hidden">
+      {/*
+        Geen kaart om het gesprek. Het gesprek ís de pagina; een rand eromheen
+        voegde een doos toe binnen een doos en maakte het leeg gedeelte alleen
+        zichtbaarder. Wat het samenhoudt is de leesbreedte, niet een lijn.
+      */}
+      <div className="flex flex-1 flex-col overflow-y-auto">
+        <div className="mx-auto mt-auto flex w-full max-w-2xl flex-col gap-6 px-6 py-8">
+          {messages.map((m, i) => {
+            const laatste = i === messages.length - 1
+            const eerste = i === 0
+
+            if (m.role === 'user') {
+              return (
+                <p key={i} className="animate-rise-in self-end rounded-lg bg-navy px-4 py-2.5 text-base text-surface">
+                  <span dangerouslySetInnerHTML={{ __html: renderContent(m.content) }} />
+                </p>
+              )
+            }
+
+            return (
               <div
+                key={i}
                 className={cn(
-                  'max-w-[80%] rounded-md px-4 py-3 text-base',
-                  m.role === 'user'
-                    ? 'bg-navy text-surface'
-                    : 'border border-line bg-canvas text-ink',
+                  'animate-rise-in text-ink',
+                  // Het eerste bericht is wat je moet lezen voordat je op een
+                  // knop drukt die honderden mails verstuurt. Dat mag groter
+                  // staan dan de antwoorden die erna komen.
+                  eerste ? 'text-lg leading-relaxed' : 'text-base',
                 )}
               >
-                {m.role === 'assistant' && laatste && !settled ? (
+                {laatste && !settled ? (
                   <Typewriter text={m.content} onDone={() => setSettled(true)} />
                 ) : (
                   <span dangerouslySetInnerHTML={{ __html: renderContent(m.content) }} />
                 )}
               </div>
-            </div>
-          )
-        })}
+            )
+          })}
 
-        {busy && (
-          <p className="flex animate-rise-in items-center gap-2 text-sm text-ink-muted">
-            <Spinner />
-            Bezig…
-          </p>
-        )}
+          {busy && (
+            <p className="flex animate-rise-in items-center gap-2 text-base text-ink-muted">
+              <Spinner />
+              Bezig…
+            </p>
+          )}
+
+          <div ref={bottomRef} />
         </div>
-
-        <div ref={bottomRef} />
       </div>
 
-      {/* De bevestiging is de kern van het scherm, dus die staat vast onderin
-          en scrolt niet weg met het gesprek.
-
-          Knoppen en tekstvak verschijnen pas als het bericht is uitgetypt. Je
-          kunt niet bevestigen wat je nog niet hebt kunnen lezen — en juist de
-          waarschuwing over een verkeerd bestand staat in die tekst. */}
+      {/* De bevestiging is de kern van het scherm en staat vast onderin, zodat
+          hij niet met het gesprek wegscrolt. Hij verschijnt pas als het bericht
+          is uitgetypt: je kunt niet bevestigen wat je nog niet hebt gelezen, en
+          juist de waarschuwing over een verkeerd bestand staat in die tekst. */}
       <div
         className={cn(
-          'shrink-0 border-t border-line p-4 transition-opacity duration-base ease-out',
+          'shrink-0 border-t border-line bg-canvas transition-opacity duration-base ease-out',
           settled ? 'opacity-100' : 'pointer-events-none opacity-0',
         )}
       >
-        {chatState === 'awaiting_confirmation' && (
-          <div className="mb-4 flex animate-rise-in gap-3">
-            <Button onClick={runSend} disabled={!settled}>
-              Ja, versturen
-            </Button>
-            <Button variant="secondary" onClick={cancelSend} disabled={!settled}>
-              Nee, stoppen
-            </Button>
-          </div>
-        )}
+        <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-6 py-5">
+          {chatState === 'awaiting_confirmation' && (
+            <div className="flex animate-rise-in gap-3">
+              <Button onClick={runSend} disabled={!settled}>
+                Ja, versturen
+              </Button>
+              <Button variant="secondary" onClick={cancelSend} disabled={!settled}>
+                Nee, stoppen
+              </Button>
+            </div>
+          )}
 
-        <form
-          onSubmit={e => { e.preventDefault(); handleUserMessage(input) }}
-          className="flex gap-3"
-        >
-          <Input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={
-              chatState === 'awaiting_confirmation' ? 'Stel een vraag over de lijst…'
-              : chatState === 'done' ? 'Stel een vraag, of kies hierboven een nieuw bestand'
-              : 'Stel een vraag over de lijst…'
-            }
-            disabled={busy || answering}
-          />
-          {/* Heette "Verstuur", pal naast "Ja, versturen" — twee knoppen met
-              vrijwel dezelfde tekst waarvan er één mail de deur uit doet. */}
-          <Button
-            type="submit"
-            variant="secondary"
-            disabled={!input.trim() || busy || answering}
-            className="shrink-0"
+          <form
+            onSubmit={e => { e.preventDefault(); handleUserMessage(input) }}
+            className="flex gap-3"
           >
-            Vraag
-          </Button>
-        </form>
+            <Input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder="Stel een vraag over de lijst…"
+              disabled={busy || answering}
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={!input.trim() || busy || answering}
+              className="shrink-0"
+            >
+              Vraag
+            </Button>
+          </form>
+        </div>
       </div>
     </div>
   )

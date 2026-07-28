@@ -34,11 +34,13 @@ const Button = forwardRef<HTMLButtonElement, Props>(function Button(
       ref={ref}
       className={cn(
         'inline-flex items-center justify-center gap-2 rounded-md font-medium',
-        // Kleur schakelt direct, de indruk bij het indrukken volgt een fractie
-        // later. Dat halve procent krimp is wat een knop laat aanvoelen als
-        // iets dat je indrukt in plaats van iets dat van kleur verandert.
-        'transition-[color,background-color,border-color,transform] duration-fast ease-out-soft',
-        'active:scale-[0.985] disabled:cursor-not-allowed disabled:active:scale-100',
+        // Asymmetrisch: indrukken gaat sneller dan loslaten. Je vinger is er al
+        // voordat het scherm reageert, dus de reactie moet je inhalen; het
+        // terugveren mag je zien. Drie procent krimp is waar een knop aanvoelt
+        // als indrukken zonder dat het opvalt als animatie.
+        'transition-[color,background-color,border-color,transform] duration-fast ease-out',
+        'active:duration-press active:scale-[0.97]',
+        'disabled:cursor-not-allowed disabled:active:scale-100',
         VARIANTS[variant],
         SIZES[size],
         className,
