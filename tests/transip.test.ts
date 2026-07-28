@@ -61,17 +61,43 @@ describe('namen omzetten naar zonenotatie', () => {
 })
 
 describe('inhoud van een record', () => {
-  test('MX krijgt de prioriteit vooraan', () => {
-    assert.equal(
-      toContent({ type: 'MX', name: 'x', value: 'feedback-smtp.eu-west-1.amazonses.com', priority: 10 }),
-      '10 feedback-smtp.eu-west-1.amazonses.com'
-    )
-  })
-
   test('TXT blijft ongemoeid', () => {
     assert.equal(
       toContent({ type: 'TXT', name: 'x', value: 'v=spf1 include:amazonses.com ~all' }),
       'v=spf1 include:amazonses.com ~all'
+    )
+  })
+
+  /*
+   * Zonder afsluitende punt leest TransIP een externe hostnaam als een naam
+   * binnen de eigen zone en weigert hij het verzoek. Geldt voor CNAME, NS, MX
+   * en SRV, niet voor TXT — daar zou een punt de waarde veranderen.
+   */
+  test('MX krijgt een afsluitende punt', () => {
+    assert.equal(
+      toContent({ type: 'MX', name: 'x', value: 'feedback-smtp.eu-west-1.amazonses.com', priority: 10 }),
+      '10 feedback-smtp.eu-west-1.amazonses.com.'
+    )
+  })
+
+  test('CNAME krijgt een afsluitende punt', () => {
+    assert.equal(
+      toContent({ type: 'CNAME', name: 'x', value: 'doel.example.com' }),
+      'doel.example.com.'
+    )
+  })
+
+  test('een punt die er al staat wordt niet verdubbeld', () => {
+    assert.equal(
+      toContent({ type: 'CNAME', name: 'x', value: 'doel.example.com.' }),
+      'doel.example.com.'
+    )
+  })
+
+  test('een TXT met punten erin krijgt er geen bij', () => {
+    assert.equal(
+      toContent({ type: 'TXT', name: 'x', value: 'v=DMARC1; p=none; rua=mailto:dmarc@reviewmoment.nl' }),
+      'v=DMARC1; p=none; rua=mailto:dmarc@reviewmoment.nl'
     )
   })
 })

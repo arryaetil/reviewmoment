@@ -58,12 +58,28 @@ export function toZoneName(name: string, zone: string, mustBeUnder: string): str
   return absolute.slice(0, -(zone.length + 1))
 }
 
-/** MX draagt zijn prioriteit in het inhoudsveld: "10 host.example.com". */
+/** Recordtypes waarvan de waarde een hostnaam is, geen tekst of adres. */
+const HOSTNAME_TYPES = new Set(['CNAME', 'NS', 'MX', 'SRV'])
+
+/**
+ * Zet de waarde om naar wat TransIP verwacht.
+ *
+ * Twee eigenaardigheden. MX draagt zijn prioriteit in het inhoudsveld
+ * ("10 host.example.com"), en een hostnaam buiten de eigen zone moet eindigen
+ * op een punt. Zonder die punt weigert TransIP het hele verzoek — zonder punt
+ * leest hij "feedback-smtp.eu-west-1.amazonses.com" namelijk als een naam
+ * binnen je eigen zone.
+ */
 export function toContent(record: DnsRecord): string {
+  const value =
+    HOSTNAME_TYPES.has(record.type) && record.value.includes('.') && !record.value.endsWith('.')
+      ? `${record.value}.`
+      : record.value
+
   if (record.type === 'MX' && record.priority !== undefined) {
-    return `${record.priority} ${record.value}`
+    return `${record.priority} ${value}`
   }
-  return record.value
+  return value
 }
 
 function config() {
