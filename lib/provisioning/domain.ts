@@ -93,6 +93,15 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
     domain = await resendFetch<ResendDomain>(`/domains/${found.id}`)
   }
 
+  // Het id meteen vastleggen, vóórdat er iets kan misgaan bij de DNS-provider.
+  // Sloegen we het pas aan het eind op, dan laat elke Cloudflare-storing een
+  // klant achter met een domein dat bij Resend bestaat maar dat wij niet meer
+  // kunnen volgen: refreshDomainStatus heeft dit id nodig.
+  await db
+    .update(tenants)
+    .set({ resendDomainId: domain.id, updatedAt: new Date() })
+    .where(eq(tenants.id, tenantId))
+
   // 2. De door Resend gevraagde records via Cloudflare wegschrijven.
   const records: DnsRecord[] = domain.records.map((r) => ({
     type: r.type,
@@ -120,11 +129,7 @@ export async function provisionSendingDomain(tenantId: string): Promise<{
 
   await db
     .update(tenants)
-    .set({
-      resendDomainId: domain.id,
-      domainStatus: 'verifying',
-      updatedAt: new Date(),
-    })
+    .set({ domainStatus: 'verifying', updatedAt: new Date() })
     .where(eq(tenants.id, tenantId))
 
   return { sendingDomain, status: 'verifying' }

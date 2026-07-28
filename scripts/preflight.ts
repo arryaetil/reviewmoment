@@ -76,7 +76,7 @@ function checkEnvVars() {
 
 async function checkDatabase() {
   const url = env('DATABASE_URL')
-  if (!url) return record('Supabase', false, 'DATABASE_URL ontbreekt')
+  if (!url) return record('Postgres', false, 'DATABASE_URL ontbreekt')
 
   try {
     const { default: postgres } = await import('postgres')
@@ -93,14 +93,14 @@ async function checkDatabase() {
     const absent = expected.filter((t) => !names.includes(t))
 
     record(
-      'Supabase',
+      'Postgres',
       absent.length === 0,
       absent.length === 0
         ? `verbonden, ${expected.length} tabellen aanwezig`
         : `verbonden, maar tabellen ontbreken: ${absent.join(', ')} — draai npm run db:migrate`
     )
   } catch (err) {
-    record('Supabase', false, err instanceof Error ? err.message : 'verbinding mislukt')
+    record('Postgres', false, err instanceof Error ? err.message : 'verbinding mislukt')
   }
 }
 

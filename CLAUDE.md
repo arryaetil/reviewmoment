@@ -19,11 +19,11 @@ een specifieke medewerker bij naam te noemen.
 ## Architectuur
 
 ```
-Browser                    Next.js (Vercel)              Extern
-───────                    ────────────────              ──────
+Browser                    Railway (europe-west4)        Extern
+───────                    ──────────────────────        ──────
 upload CSV/XLSX  ─────────► /api/extract  ──────────────► Anthropic (Claude)
                                 │
-bevestigen       ─────────► /api/send                     Supabase (Postgres)
+bevestigen       ─────────► /api/send                     Postgres (privé netwerk)
                                 │  job + ontvangers  ───►
                                 │  in wachtrij       ───► Upstash QStash
                                 ▼
@@ -130,8 +130,11 @@ Daarna klanten aanmaken via `POST /api/admin/tenants` — zonder redeploy.
 
 ### Externe configuratie
 
-1. **Supabase** — project aanmaken, pooler-URL (6543) als `DATABASE_URL` en
-   directe URL (5432) als `DIRECT_DATABASE_URL`.
+1. **Postgres** — draait als service in hetzelfde Railway-project en is alleen
+   bereikbaar op `*.railway.internal`; geen publieke TCP-proxy. `DATABASE_URL`
+   wijst er als referentievariabele naar, zodat het wachtwoord nergens
+   gekopieerd staat. Er is geen aparte pooler, dus `DIRECT_DATABASE_URL` is
+   dezelfde verbinding.
 2. **Cloudflare** — zone voor `SENDING_ROOT_DOMAIN`, API-token met alleen
    `Zone:DNS:Edit` op die ene zone.
 3. **Railway Redis + Upstash** — Redis draait privé in Railway; QStash levert de wachtrij en signing keys.
