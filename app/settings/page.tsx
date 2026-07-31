@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { cn } from '@/components/ui'
+import { Button, Field, Input, Notice, Spinner, cn } from '@/components/ui'
 
 interface UserInfo {
   email: string
@@ -67,12 +67,42 @@ function Sectie({ titel, children }: { titel: string; children: React.ReactNode 
 
 export default function SettingsPage() {
   const [user, setUser] = useState<UserInfo | null>(null)
+  const [form, setForm] = useState({ fromName: '', replyTo: '', googleReviewLink: '' })
+  const [bezig, setBezig] = useState(false)
+  const [fout, setFout] = useState<string | null>(null)
+  const [opgeslagen, setOpgeslagen] = useState(false)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(d => {
-      if (d.email) setUser(d)
+      if (!d.email) return
+      setUser(d)
+      setForm({
+        fromName: d.fromName ?? '',
+        replyTo: d.replyTo ?? '',
+        googleReviewLink: d.googleReviewLink ?? '',
+      })
     }).catch(() => {})
   }, [])
+
+  async function opslaan(e: React.FormEvent) {
+    e.preventDefault()
+    setBezig(true); setFout(null); setOpgeslagen(false)
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      })
+      const data = await res.json()
+      if (!res.ok) { setFout(data.error || 'Opslaan mislukt.'); return }
+      setUser(u => (u ? { ...u, ...data } : u))
+      setOpgeslagen(true)
+    } catch {
+      setFout('Verbindingsfout. Probeer het opnieuw.')
+    } finally {
+      setBezig(false)
+    }
+  }
 
   const v = (val: string | undefined) => val || '—'
 
@@ -93,18 +123,62 @@ export default function SettingsPage() {
               <Regel label="Bedrijfsnaam" value={v(user?.businessName)} />
             </Sectie>
 
-            <Sectie titel="Wat je klanten zien">
-              <Regel label="Afzendernaam" value={v(user?.fromName)} />
-              <Regel
-                label="Verzenddomein"
-                value={v(user?.sendingDomain)}
-                hint={user?.domainStatus && DOMAIN_LABEL[user.domainStatus]}
-                hintTone={user?.domainStatus && DOMAIN_TONE[user.domainStatus]}
-                breed
-              />
-              <Regel label="Antwoorden gaan naar" value={v(user?.replyTo)} />
-              <Regel label="Reviewlink" value={v(user?.googleReviewLink)} breed />
-            </Sectie>
+            <section className="border-t border-line pt-6">
+              <h2 className="text-base font-medium text-ink">Wat je klanten zien</h2>
+              <p className="mt-2 text-sm text-ink-muted">
+                Deze drie kun je zelf aanpassen. Een wijziging geldt vanaf de volgende
+                verzending; wat al onderweg is verandert niet meer.
+              </p>
+
+              <form onSubmit={opslaan} className="mt-6 flex flex-col gap-6">
+                <Field label="Afzendernaam" htmlFor="fromName">
+                  <Input id="fromName" value={form.fromName} maxLength={60} required
+                    onChange={e => setForm(f => ({ ...f, fromName: e.target.value }))} />
+                  <p className="mt-2 text-sm text-ink-muted">
+                    Zo staat het in de inbox van je klant:{' '}
+                    <span className="text-ink">
+                      {form.fromName || '—'} &lt;reviews@{v(user?.sendingDomain)}&gt;
+                    </span>
+                  </p>
+                </Field>
+
+                <Field label="Antwoorden gaan naar" htmlFor="replyTo">
+                  <Input id="replyTo" type="email" autoComplete="email" spellCheck={false}
+                    value={form.replyTo} required
+                    onChange={e => setForm(f => ({ ...f, replyTo: e.target.value }))} />
+                  <p className="mt-2 text-sm text-ink-muted">
+                    Antwoordt een klant op de mail, dan komt dat hier binnen.
+                  </p>
+                </Field>
+
+                <Field label="Reviewlink" htmlFor="googleReviewLink">
+                  <Input id="googleReviewLink" type="url" spellCheck={false}
+                    value={form.googleReviewLink} required
+                    onChange={e => setForm(f => ({ ...f, googleReviewLink: e.target.value }))} />
+                  <p className="mt-2 text-sm text-ink-muted">
+                    De knop in de mail wijst hierheen. Moet een Google-link zijn, bijvoorbeeld g.page/r/…
+                  </p>
+                </Field>
+
+                {fout && <Notice tone="error">{fout}</Notice>}
+                {opgeslagen && !fout && <Notice>Opgeslagen.</Notice>}
+
+                <div>
+                  <Button type="submit" disabled={bezig}>
+                    {bezig && <Spinner />}
+                    Opslaan
+                  </Button>
+                </div>
+              </form>
+
+              {/* Het verzenddomein hoort hier thuis maar is niet van de klant:
+                  dat is bij het aanmaken ingericht en zit vast aan de DNS. */}
+              <dl className="mt-8 border-t border-line">
+                <Regel label="Verzenddomein" value={v(user?.sendingDomain)}
+                  hint={user?.domainStatus && DOMAIN_LABEL[user.domainStatus]}
+                  hintTone={user?.domainStatus && DOMAIN_TONE[user.domainStatus]} breed />
+              </dl>
+            </section>
 
             <Sectie titel="Limieten">
               <Regel label="Max. bestandsgrootte" value="5 MB" />
