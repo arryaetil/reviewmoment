@@ -32,11 +32,12 @@ export default function Home() {
   /*
    * Wie niet kan versturen, ziet ook geen uploadveld.
    *
-   * De controle draait op de achtergrond en het scherm wacht er niet op. Deed
-   * het dat wel, dan opende de app met een leeg vlak en een spinnertje zolang
-   * het rondje langs Resend duurde — bij elke keer laden opnieuw. Bijna iedereen
-   * mag gewoon versturen; de uitzondering mag een fractie later verschijnen.
+   * Eerder bleek dat pas ná het uploaden, het wachten op de analyse en het
+   * indrukken van de verzendknop. Dat is werk dat nooit tot iets kon leiden, en
+   * het beheeraccount kwam er standaard op uit.
    */
+  // De controle draait op de achtergrond; het scherm wacht er niet op.
+  // Anders opent de app met een leeg vlak en een spinnertje.
   if (!laden && account && !magVersturen(account.domainStatus)) {
     return (
       <AppShell>
@@ -54,34 +55,26 @@ export default function Home() {
 
   return (
     <AppShell>
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/*
-          Eén FileUpload, alleen een andere omhulling. Stond hij in twee takken
-          van een ternary, dan ziet React dat als een ander element: het oude
-          wordt weggegooid en het nieuwe begint zonder bestandsnaam, waardoor de
-          kop het volledige uploadveld liet zien terwijl er al een bestand lag.
-        */}
+      <div className="flex flex-1 flex-col gap-6 overflow-hidden p-8">
+        {/* De sprong van "uploadvlak vult het scherm" naar "smalle regel met
+            het gesprek eronder" is de grootste indelingswijziging in de app.
+            Zonder overgang lijkt het alsof het scherm knippert. */}
         <div
           className={cn(
-            hasUpload
-              ? 'shrink-0 border-b border-line'
-              : 'flex flex-1 items-center justify-center px-6 py-12',
+            'transition-all duration-slow ease-out',
+            hasUpload ? 'shrink-0' : 'flex flex-1 items-center justify-center',
           )}
         >
-          <div
-            className={cn(
-              hasUpload ? 'mx-auto w-full max-w-2xl px-6 py-4' : 'w-full max-w-lg animate-rise-in',
-            )}
-          >
+          <Card flush className={hasUpload ? 'px-6 py-4' : 'w-full max-w-lg p-8'}>
             <FileUpload
               onDataParsed={(rows: RawRow[]) => setUploadTrigger(rows)}
               compact={hasUpload}
             />
-          </div>
+          </Card>
         </div>
 
         {hasUpload && (
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 animate-rise-in overflow-hidden">
             <Chat uploadTrigger={uploadTrigger} onContactsExtracted={() => {}} />
           </div>
         )}
