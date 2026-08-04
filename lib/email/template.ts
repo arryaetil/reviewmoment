@@ -48,13 +48,12 @@ export function renderReviewRequest(input: TemplateInput): { subject: string; ht
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:12px;padding:32px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#1a1a1a;font-size:15px;line-height:1.6">
         <tr><td>
           <p style="margin:0 0 16px">${greeting}</p>
-          <p style="margin:0 0 16px">Bedankt dat u voor <strong>${biz}</strong> heeft gekozen.</p>
-          <p style="margin:0 0 16px">We zouden het enorm waarderen als u uw ervaring wilt delen met een Google-review. Het kost minder dan een minuut en helpt zowel ons als toekomstige klanten.</p>
-          <p style="margin:0 0 28px">Uw eerlijke mening telt — of die nu positief is of niet.</p>
+          <p style="margin:0 0 16px">Bedankt dat u voor <strong>${biz}</strong> heeft gekozen. We vonden het prettig om voor u te werken.</p>
+          <p style="margin:0 0 16px">Zou u een minuutje willen nemen om uw ervaring te delen in een Google-review?</p>
+          <p style="margin:0 0 28px">Mensen die ons nog niet kennen lezen die reviews voordat ze bellen. Uw eerlijke mening weegt voor hen zwaarder dan alles wat wij over onszelf kunnen schrijven.</p>
           <p style="margin:0 0 28px">
-            <a href="${link}" style="display:inline-block;background:#1a44e8;color:#ffffff;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:600">Review achterlaten</a>
+            <a href="${link}" style="display:inline-block;background:#D2A03B;color:#1E3243;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:600">Review achterlaten</a>
           </p>
-          <p style="margin:0 0 16px">Alvast hartelijk dank voor uw tijd!</p>
           <p style="margin:0 0 4px">Met vriendelijke groet,</p>
           <p style="margin:0"><strong>Team ${biz}</strong></p>
           <hr style="border:none;border-top:1px solid #eaeaea;margin:32px 0 16px">
@@ -71,15 +70,15 @@ export function renderReviewRequest(input: TemplateInput): { subject: string; ht
 
   const text = `${name ? `Beste ${name},` : 'Beste klant,'}
 
-Bedankt dat u voor ${input.businessName} heeft gekozen.
+Bedankt dat u voor ${input.businessName} heeft gekozen. We vonden het prettig om
+voor u te werken.
 
-We zouden het enorm waarderen als u uw ervaring wilt delen met een Google-review.
-Het kost minder dan een minuut en helpt zowel ons als toekomstige klanten. Uw
-eerlijke mening telt — of die nu positief is of niet.
+Zou u een minuutje willen nemen om uw ervaring te delen in een Google-review?
 
-👉 Review achterlaten: ${input.reviewLink}
+Mensen die ons nog niet kennen lezen die reviews voordat ze bellen. Uw eerlijke
+mening weegt voor hen zwaarder dan alles wat wij over onszelf kunnen schrijven.
 
-Alvast hartelijk dank voor uw tijd!
+Review achterlaten: ${input.reviewLink}
 
 Met vriendelijke groet,
 Team ${input.businessName}
