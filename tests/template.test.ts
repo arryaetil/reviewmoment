@@ -47,9 +47,6 @@ describe('e-mailtemplate', () => {
     ]) {
       assert.ok(!alles.includes(woord), `template stuurt op de uitkomst: "${woord}"`)
     }
-
-    // En noemt expliciet dat ook een negatieve mening welkom is.
-    assert.ok(alles.includes('eerlijke'))
   })
 
   test('bevat altijd een afmeldlink', () => {

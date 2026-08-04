@@ -49,8 +49,7 @@ export function renderReviewRequest(input: TemplateInput): { subject: string; ht
         <tr><td>
           <p style="margin:0 0 16px">${greeting}</p>
           <p style="margin:0 0 16px">Bedankt dat u voor <strong>${biz}</strong> heeft gekozen. We vonden het prettig om voor u te werken.</p>
-          <p style="margin:0 0 16px">Zou u een minuutje willen nemen om uw ervaring te delen in een Google-review?</p>
-          <p style="margin:0 0 28px">Mensen die ons nog niet kennen lezen die reviews voordat ze bellen. Uw eerlijke mening weegt voor hen zwaarder dan alles wat wij over onszelf kunnen schrijven.</p>
+          <p style="margin:0 0 28px">Zou u een minuutje willen nemen om uw ervaring te delen in een Google-review?</p>
           <p style="margin:0 0 28px">
             <a href="${link}" style="display:inline-block;background:#D2A03B;color:#1E3243;padding:13px 26px;border-radius:8px;text-decoration:none;font-weight:600">Review achterlaten</a>
           </p>
@@ -74,9 +73,6 @@ Bedankt dat u voor ${input.businessName} heeft gekozen. We vonden het prettig om
 voor u te werken.
 
 Zou u een minuutje willen nemen om uw ervaring te delen in een Google-review?
-
-Mensen die ons nog niet kennen lezen die reviews voordat ze bellen. Uw eerlijke
-mening weegt voor hen zwaarder dan alles wat wij over onszelf kunnen schrijven.
 
 Review achterlaten: ${input.reviewLink}
 
